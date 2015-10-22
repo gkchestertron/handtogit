@@ -11,7 +11,7 @@ window.htg = (function () {
         },
 
         renumber: function () {
-            var $rows = $('#editor > pre > span.editor-row'),
+            var $rows = $('#editor > pre > div.editor-row'),
                 numberWidth = $rows.length.toString().length;
             
             // remove numbers
@@ -79,7 +79,7 @@ window.htg = (function () {
             left = offset.left + adjustment;
 
             // listener for clicking on pre direct child-spans
-            $('#editor > pre').on('click', 'span.editor-row', function (event) {
+            $('#editor > pre').on('click', 'div.editor-row', function (event) {
                 var $span    = $(event.currentTarget),
                     clickY   = event.pageY,
                     clickX   = event.pageX,
@@ -143,8 +143,13 @@ window.htg = (function () {
                 textIdx = words[word];
 
                 // find index of word in html
-                re = new RegExp('[^<|<\/|-]' + word, 'g');
+
+                window.test = 'shit';
+                re = new RegExp('[^<\/-]\\b(' + word + ')\\b', 'g');
+                window.testhtml = html;
+                window.testre = re;
                 while((match = re.exec(html)) != null && htmlIdx < textIdx) {
+                    console.log(match[0]);
                     wordIdx = match.index + 1;
                     htmlIdx++;
                 }
@@ -173,9 +178,9 @@ window.htg = (function () {
                 $rows,
                 numberWidth;
             
-            $pre.html('<span class="editor-row">' + 
-                      $pre.text().split('\n').join('\n</span><span class="editor-row">') + 
-                      '</span>')
+            $pre.html('<div class="editor-row">' + 
+                      $pre.text().split('\n').join('\n</div><div class="editor-row">') + 
+                      '</div>')
             this.renumber();
         }
     });

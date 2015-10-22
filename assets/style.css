@@ -19,6 +19,10 @@ body, html, #app, #editor, #editor > pre {
     overflow-wrap: normal;
 }
 
+.editor-row {
+    width: 100%
+}
+
 #editor-wrapper {
     height: 70%;
     cursor: default;
