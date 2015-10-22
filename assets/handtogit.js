@@ -10,6 +10,26 @@ window.htg = (function () {
             this.setListeners();
         },
 
+        renumber: function () {
+            var $rows = $('#editor > pre > span.editor-row'),
+                numberWidth = $rows.length.toString().length;
+            
+            // remove numbers
+            $('#editor > pre span.line-number').remove();
+
+            // make new line number spans
+            $rows.each(function (i) {
+                var lineNumber = (i + 1).toString();
+
+                while (lineNumber.length < numberWidth) {
+                    lineNumber = ' ' + lineNumber;
+                }
+                $(this).prepend('<span class="line-number noselect">' + lineNumber + ' </span>');
+            });
+
+            hljs.highlightBlock($('pre')[0]); // move to wherever you dynamically load code
+        },
+
         setLanguage: function (language) {
             var self   = this,
                 script = document.createElement('script'),
@@ -32,7 +52,8 @@ window.htg = (function () {
          * by wrapping it in a styled span tag
          */
         setWordSelectListener: function () {
-            var $pre       = $('#editor > pre'),
+            var self       = this,
+                $pre       = $('#editor > pre'),
                 fontSize   = $pre.css('font-size'),
                 lineHeight = $pre.css('line-height'), // not accurate
                 border     = $pre.css('border-width'),
@@ -79,6 +100,7 @@ window.htg = (function () {
                 // callback for remove one and off
                 function remove(event) {
                     $span.remove();
+                    self.renumber();
                 }
             });
 
@@ -147,10 +169,14 @@ window.htg = (function () {
          * wraps each line in a span tag for easier listening
          */
         splitPre: function () {
-            var $pre = $('pre');
+            var $pre = $('pre'),
+                $rows,
+                numberWidth;
             
-            $pre.html('<span class="editor-row">' + $pre.text().split('\n').join('\n</span><span class="editor-row">') + '</span>')
-            hljs.highlightBlock($('pre')[0]); // move to wherever you dynamically load code
+            $pre.html('<span class="editor-row">' + 
+                      $pre.text().split('\n').join('\n</span><span class="editor-row">') + 
+                      '</span>')
+            this.renumber();
         }
     });
     
