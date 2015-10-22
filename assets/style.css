@@ -23,3 +23,7 @@ body, html, #app, #editor, #editor > pre {
     height: 70%;
     cursor: default;
 }
+
+#word-select {
+    background-color: yellow;
+}

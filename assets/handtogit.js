@@ -7,7 +7,7 @@ window.htg = (function () {
         init: function () {
             this.setLanguage('js');
             this.splitPre();
-            this.setWordListener();
+            this.setListeners();
         },
 
         setLanguage: function (language) {
@@ -22,8 +22,16 @@ window.htg = (function () {
                 self.language = new self.LanguageBase(self.languageDefinitions[language]);
             };
         },
+
+        setListeners: function () {
+            this.setWordSelectListener();
+        },
         
-        setWordListener: function () {
+        /*
+         * finds a word from the mouse click positiontion and highlights it
+         * by wrapping it in a styled span tag
+         */
+        setWordSelectListener: function () {
             var $pre       = $('#editor > pre'),
                 fontSize   = $pre.css('font-size'),
                 lineHeight = $pre.css('line-height'), // not accurate
@@ -49,7 +57,7 @@ window.htg = (function () {
             top  = offset.top  + adjustment;
             left = offset.left + adjustment;
 
-            // listener for clicking on pre
+            // listener for clicking on pre direct child-spans
             $('#editor > pre').on('click', 'span.editor-row', function (event) {
                 var $span    = $(event.currentTarget),
                     clickY   = event.pageY,
@@ -61,9 +69,20 @@ window.htg = (function () {
                     row = Math.ceil(position.top/lineHeight), // not reliable
                     col = Math.ceil(position.left/fontWidth) - 1;
 
+                // highlight word
                 highlightWord($span, col);
+
+                // remove line on second click within 250ms
+                $span.one('click',remove);
+                setTimeout(function () { $span.off('click', remove); }, 250);
+
+                // callback for remove one and off
+                function remove(event) {
+                    $span.remove();
+                }
             });
 
+            // helper for finding the word in a span from a mouse-coordinated-derived index
             function highlightWord($span, letterIdx) {
                 var re = /\w+/g,
                     wordIdx = 0,
@@ -84,10 +103,11 @@ window.htg = (function () {
                     $wordSelect.remove();
                 }
 
+                // get text and html as strings
                 text = $span.text();
                 html = $span.html();
 
-                // find index in text
+                // find word in text from index
                 while ((match = re.exec(text)) != null) {
                     if (match.index > letterIdx) break;
                     word = match[0];
@@ -98,31 +118,38 @@ window.htg = (function () {
                         words[word]++;
                     }
                 }
-
                 textIdx = words[word];
 
-                // find indexes in html
+                // find index of word in html
                 re = new RegExp('[^<|<\/|-]' + word, 'g');
-
                 while((match = re.exec(html)) != null && htmlIdx < textIdx) {
                     wordIdx = match.index + 1;
                     htmlIdx++;
                 }
 
+                // return false if user clicked on a space
+                if (!word) return false;
+
+                // wrap word in #word-select span
                 html = html.slice(0, wordIdx) + 
-                       '<span id="word-select" style="background-color: yellow;">' + 
+                       '<span id="word-select">' + 
                        html.slice(wordIdx, wordIdx + word.length) + 
                        '</span>'                                  +
                        html.slice(wordIdx + word.length, html.length);
-
                 $span.html(html);
+
+                // return true to indicate successful highlight
+                return true;
             }
         },
 
+        /*
+         * wraps each line in a span tag for easier listening
+         */
         splitPre: function () {
             var $pre = $('pre');
             
-            $pre.html('<span class="editor-row">' + $pre.text().split('\n').join('</span>\n<span class="editor-row">') + '</span>')
+            $pre.html('<span class="editor-row">' + $pre.text().split('\n').join('\n</span><span class="editor-row">') + '</span>')
             hljs.highlightBlock($('pre')[0]); // move to wherever you dynamically load code
         }
     });
