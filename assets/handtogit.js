@@ -143,13 +143,8 @@ window.htg = (function () {
                 textIdx = words[word];
 
                 // find index of word in html
-
-                window.test = 'shit';
-                re = new RegExp('[^<\/-]\\b(' + word + ')\\b', 'g');
-                window.testhtml = html;
-                window.testre = re;
+                re = new RegExp('[^<-]\\b(' + word + ')\\b[^>]', 'g');
                 while((match = re.exec(html)) != null && htmlIdx < textIdx) {
-                    console.log(match[0]);
                     wordIdx = match.index + 1;
                     htmlIdx++;
                 }
