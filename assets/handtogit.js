@@ -50,7 +50,7 @@ window.htg = (function () {
             left = offset.left + adjustment;
 
             // listener for clicking on pre
-            $('#editor > pre').on('click', '> span', function (event) {
+            $('#editor > pre').on('click', 'span.editor-row', function (event) {
                 var $span    = $(event.currentTarget),
                     clickY   = event.pageY,
                     clickX   = event.pageX,
@@ -68,8 +68,13 @@ window.htg = (function () {
                 var re = /\w+/g,
                     wordIdx = 0,
                     $wordSelect = $('#word-select'),
+                    wordIdxes = [],
                     wordIdx,
+                    words = {},
                     word,
+                    match,
+                    textIdx = -1,
+                    htmlIdx = -1,
                     text,
                     html;
 
@@ -86,9 +91,23 @@ window.htg = (function () {
                 while ((match = re.exec(text)) != null) {
                     if (match.index > letterIdx) break;
                     word = match[0];
+                    if (words[word] === undefined) {
+                        words[word] = 0;
+                    }
+                    else {
+                        words[word]++;
+                    }
                 }
 
-                wordIdx = html.indexOf(word);
+                textIdx = words[word];
+
+                // find indexes in html
+                re = new RegExp('[^<|<\/|-]' + word, 'g');
+
+                while((match = re.exec(html)) != null && htmlIdx < textIdx) {
+                    wordIdx = match.index + 1;
+                    htmlIdx++;
+                }
 
                 html = html.slice(0, wordIdx) + 
                        '<span id="word-select" style="background-color: yellow;">' + 
@@ -103,7 +122,8 @@ window.htg = (function () {
         splitPre: function () {
             var $pre = $('pre');
             
-            $pre.html('<span>' + $pre.text().split('\n').join('</span>\n<span>') + '</span>')
+            $pre.html('<span class="editor-row">' + $pre.text().split('\n').join('</span>\n<span class="editor-row">') + '</span>')
+            hljs.highlightBlock($('pre')[0]); // move to wherever you dynamically load code
         }
     });
     
