@@ -1,0 +1,17 @@
+body, html, #app, #editor, #editor > pre {
+    height: 100%;
+}
+
+#controls-wrapper {
+    height: 30%;
+    margin-bottom: 0px;
+}
+
+#editor > pre {
+    overflow-wrap: normal;
+}
+
+#editor-wrapper {
+    height: 70%;
+    cursor: default;
+}
