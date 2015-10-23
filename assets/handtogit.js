@@ -74,13 +74,11 @@ window.htg = (function () {
             var self       = this,
                 $pre       = $('#editor > pre'),
                 fontSize   = $pre.css('font-size'),
-                lineHeight = $pre.css('line-height'), // not accurate
                 border     = $pre.css('border-width'),
                 padding    = $pre.css('padding'),
                 offset     = $pre.offset(),
                 fontWidth,
                 adjustment, 
-                top, 
                 left;
 
             // calculate average letter width
@@ -90,30 +88,25 @@ window.htg = (function () {
 
             // strip px and parse into floats
             fontSize   = stripPx(fontSize);
-            lineHeight = stripPx(lineHeight);
             adjustment = stripPx(border) + stripPx(padding);
 
             // add in adjustment for border and padding
-            top  = offset.top  + adjustment;
             left = offset.left + adjustment;
 
             // listener for clicking on pre direct child-spans
             $('#editor > pre').on('click', 'div.editor-row', function (event) {
                 var $span    = $(event.currentTarget),
-                    clickY   = event.pageY,
                     clickX   = event.pageX,
                     position = { 
-                        top: clickY - (top - $pre.scrollTop()), 
                         left: clickX - (left - $pre.scrollLeft()) 
                     },
-                    row = Math.ceil(position.top/lineHeight), // not reliable
                     col = Math.ceil(position.left/fontWidth) - 1;
 
                 // highlight word
                 highlightWord($span, col);
 
                 // remove line on second click within 250ms
-               $('#word-select').one('click',remove);
+                $('#word-select').one('click',remove);
 
                 // callback for remove one and off
                 function remove(event) {
@@ -234,16 +227,21 @@ window.htg = (function () {
         // return false if user clicked on a space
         if (!word) return false;
 
-        // wrap word in #word-select span
-        html = html.slice(0, wordIdx) + 
-               '<span id="word-select">' + 
-               html.slice(wordIdx, wordIdx + word.length) + 
-               '</span>'                                  +
-               html.slice(wordIdx + word.length, html.length);
-        $span.html(html);
+        drawHighlight();
 
         // return true to indicate successful highlight
         return true;
+
+        function drawHighlight() {
+            // wrap word in #word-select span
+            html = html.slice(0, wordIdx) + 
+                   '<span id="word-select">' + 
+                   html.slice(wordIdx, wordIdx + word.length) + 
+                   '</span>'                                  +
+                   html.slice(wordIdx + word.length, html.length);
+            $span.html(html);
+        }
+
     }
 
     // strip off px from css properties
