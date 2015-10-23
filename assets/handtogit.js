@@ -9,6 +9,7 @@ window.htg = (function () {
             this.state.save();
             this.splitPre();
             this.setListeners();
+            $('#goFS').on('click', toggleFullScreen);
         },
 
         renumber: function () {
@@ -112,8 +113,7 @@ window.htg = (function () {
                 highlightWord($span, col);
 
                 // remove line on second click within 250ms
-                $span.one('click',remove);
-                setTimeout(function () { $span.off('click', remove); }, 250);
+               $('#word-select').one('click',remove);
 
                 // callback for remove one and off
                 function remove(event) {
@@ -202,6 +202,7 @@ window.htg = (function () {
         // replace previous highlight with plain text
         if ($wordSelect.length) {
             $wordSelect.after($wordSelect.text());
+            $wordSelect.off();
             $wordSelect.remove();
         }
 
@@ -284,3 +285,19 @@ window.addEventListener("load", function load(event){
     window.removeEventListener("load", load, false); //remove listener, no longer needed
     htg.init();
 },false);
+
+// full screen fill
+function toggleFullScreen() {
+    var doc = window.document;
+    var docEl = doc.documentElement;
+
+    var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+        requestFullScreen.call(docEl);
+    }
+    else {
+        cancelFullScreen.call(doc);
+    }
+}
