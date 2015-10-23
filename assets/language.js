@@ -1,4 +1,4 @@
-htg.LanguageBase = (function () {
+HTG.prototype.LanguageBase = (function () {
     var LanguageBase = function (options) {
         this.definition = options;
     };

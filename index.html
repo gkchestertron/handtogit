@@ -21,54 +21,13 @@
 
         <!-- Custom JS -->
         <script src="assets/handtogit.js"></script>
+        <script src="assets/util.js"></script>
         <script src="assets/language.js"></script>
     </head>
     <body>
         <div id="app" class="container-fluid">
             <div id="editor-wrapper" class="row-fluid">
-                <div id="editor">
-<pre class="noselect">
-window.htg = (function () {
-    var HTG = function () {
-        this.languageDefinitions = {};
-    };
-    
-    extend(HTG.prototype, {
-        init: function () {
-            this.setLanguage('js');
-        },
-        setLanguage: function (language) {
-            var self   = this,
-                script = document.createElement('script'),
-                head   = document.getElementsByTagName('body')[0];
-
-            script.src = 'languages/' + language + '.js';
-            head.appendChild(script);
-
-            script.onload = function () {
-                self.language = new self.LanguageBase(self.languageDefinitions[language]);
-            };
-        }
-
-    });
-    
-    return new HTG();
-
-    // shallow extend function shit shit shit
-    // span span and another span
-    function extend (obj, props) {
-        for (var i in props) {
-            obj[i] = props[i];
-        }
-    }
-})();
-
-window.addEventListener("load", function load(event){
-    window.removeEventListener("load", load, false); //remove listener, no longer needed
-    htg.init();
-},false);
-</pre>
-                </div>
+                <div id="editor"></div>
             </div>
             <div id="controls-wrapper" class="row-fluid well">
                 <div class="col-xs-12" id="controls">

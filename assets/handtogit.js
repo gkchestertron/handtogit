@@ -1,16 +1,20 @@
-window.htg = (function () {
-    var HTG = function () {
+window.HTG = (function () {
+    var $pre;
+
+    var HTG = function ($parent) {
+        $pre = $('<pre class="noselect">function () {\n    this is some code;\n}</pre>');
+        $parent.append($pre);
         this.languageDefinitions = {};
+        this.setLanguage('js');
+        this.state.save();
+        this.splitPre();
+        this.setListeners();
+        $('#goFS').on('click', toggleFullScreen);
     };
     
     extend(HTG.prototype, {
         init: function () {
-            this.setLanguage('js');
-            this.state.save();
-            this.splitPre();
-            this.setListeners();
-            $('#goFS').on('click', toggleFullScreen);
-        },
+                },
 
         renumber: function () {
             var $rows = $('#editor > pre > div.editor-row'),
@@ -29,7 +33,7 @@ window.htg = (function () {
                 $(this).prepend('<span class="line-number noselect">' + lineNumber + ' </span>');
             });
 
-            hljs.highlightBlock($('pre')[0]); // move to wherever you dynamically load code
+            hljs.highlightBlock($pre[0]); // move to wherever you dynamically load code
         },
 
         setLanguage: function (language) {
@@ -72,7 +76,6 @@ window.htg = (function () {
          */
         setWordSelectListener: function () {
             var self       = this,
-                $pre       = $('#editor > pre'),
                 fontSize   = $pre.css('font-size'),
                 border     = $pre.css('border-width'),
                 padding    = $pre.css('padding'),
@@ -94,7 +97,7 @@ window.htg = (function () {
             left = offset.left + adjustment;
 
             // listener for clicking on pre direct child-spans
-            $('#editor > pre').on('click', 'div.editor-row', function (event) {
+            $pre.on('click', 'div.editor-row', function (event) {
                 var $span    = $(event.currentTarget),
                     clickX   = event.pageX,
                     position = { 
@@ -103,7 +106,7 @@ window.htg = (function () {
                     col = Math.ceil(position.left/fontWidth) - 1;
 
                 // highlight word
-                highlightWord($span, col);
+                $span.highlight(col);
 
                 // remove line on second click within 250ms
                 $('#word-select').one('click',remove);
@@ -121,8 +124,7 @@ window.htg = (function () {
          * wraps each line in a span tag for easier listening
          */
         splitPre: function () {
-            var $pre = $('pre'),
-                $rows,
+            var $rows,
                 numberWidth;
             
             $pre.html('<div class="editor-row">' + 
@@ -137,7 +139,7 @@ window.htg = (function () {
             redo: function () {
                 if (this.pointer > this.stack.length - 2) return false;
                 this.pointer++;
-                $('#editor > pre').html(this.stack[this.pointer]);
+                $pre.html(this.stack[this.pointer]);
                 return true;
             },
 
@@ -149,7 +151,7 @@ window.htg = (function () {
                 $('#editor > pre span.line-number').remove();
 
                 // save text copy of file
-                this.stack.push($('#editor > pre').text());
+                this.stack.push($pre.text());
 
                 // move pointer
                 this.pointer++;
@@ -159,7 +161,7 @@ window.htg = (function () {
             undo: function () {
                 if (this.pointer < 1) return false;
                 this.pointer--;
-                $('#editor > pre').html(this.stack[this.pointer]);
+                $pre.html(this.stack[this.pointer]);
                 return true;
             },
 
@@ -167,7 +169,7 @@ window.htg = (function () {
         }
     });
     
-    return new HTG();
+    return HTG;
 
     // shallow extend function
     function extend (obj, props) {
@@ -176,126 +178,31 @@ window.htg = (function () {
         }
     }
 
-    // helper for finding the word in a span from a mouse-coordinated-derived index
-    function highlightWord($span, letterIdx) {
-        var re = /\w+/g,
-            wordIdx = 0,
-            $wordSelect = $('#word-select'),
-            wordIdxes = [],
-            wordIdx,
-            words = {},
-            word,
-            match,
-            textIdx = -1,
-            htmlIdx = -1,
-            text,
-            html,
-            testHtml;
-
-        // replace previous highlight with plain text
-        if ($wordSelect.length) {
-            $wordSelect.after($wordSelect.text());
-            $wordSelect.off();
-            $wordSelect.remove();
-        }
-
-        // get text and html as strings
-        text = $span.text();
-        html = $span.html();
-        testHtml = stripTags(html); // replace non-text with spaces
-
-        // find word in text from index
-        while ((match = re.exec(text)) != null) {
-            if (match.index > letterIdx) break;
-            word = match[0];
-            if (words[word] === undefined) {
-                words[word] = 0;
-            }
-            else {
-                words[word]++;
-            }
-        }
-        textIdx = words[word];
-
-        // find index of word in html
-        re = new RegExp('\\b(' + word + ')\\b', 'g');
-        while((match = re.exec(testHtml)) != null && htmlIdx < textIdx) {
-            wordIdx = match.index;
-            htmlIdx++;
-        }
-
-        // return false if user clicked on a space
-        if (!word) return false;
-
-        drawHighlight();
-
-        // return true to indicate successful highlight
-        return true;
-
-        function drawHighlight() {
-            // wrap word in #word-select span
-            html = html.slice(0, wordIdx) + 
-                   '<span id="word-select">' + 
-                   html.slice(wordIdx, wordIdx + word.length) + 
-                   '</span>'                                  +
-                   html.slice(wordIdx + word.length, html.length);
-            $span.html(html);
-        }
-
-    }
-
     // strip off px from css properties
     function stripPx(prop) {
          return parseFloat(prop.slice(0, prop.length -2));
     }
 
-    // replace html tags with same-length strings
-    function stripTags(html) {
-        var re = /(<[^>]*>)/g,
-            result = '',
-            lastIdx = 0,
-            blank,
-            match;
-            
-        // build string with tags replaced with blanks
-        while((match = re.exec(html)) != null) {
-            // add previous chunk
-            result += html.slice(lastIdx, match.index);
+    // full screen fill
+    function toggleFullScreen() {
+        var doc = window.document;
+        var docEl = doc.documentElement;
 
-            // generate blanks
-            blank = '';
-            while (blank.length < match[0].length) blank += ' ';
+        var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+        var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
 
-            // add blank string
-            result += blank;
-
-            // save the starting index for the next chunk
-            lastIdx = match.index + match[0].length;
+        if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+            requestFullScreen.call(docEl);
         }
-        // add the last chunk
-        result += html.slice(lastIdx);
-
-        return result;
+        else {
+            cancelFullScreen.call(doc);
+        }
     }
 })();
 
 window.addEventListener("load", function load(event){
     window.removeEventListener("load", load, false); //remove listener, no longer needed
-    htg.init();
+    window.htg = new HTG($('#editor'));
 },false);
 
-// full screen fill
-function toggleFullScreen() {
-    var doc = window.document;
-    var docEl = doc.documentElement;
 
-    var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-    var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-
-    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-        requestFullScreen.call(docEl);
-    }
-    else {
-        cancelFullScreen.call(doc);
-    }
-}
