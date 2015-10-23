@@ -6,6 +6,7 @@ window.htg = (function () {
     extend(HTG.prototype, {
         init: function () {
             this.setLanguage('js');
+            this.state.save();
             this.splitPre();
             this.setListeners();
         },
@@ -45,6 +46,23 @@ window.htg = (function () {
 
         setListeners: function () {
             this.setWordSelectListener();
+            this.setStateListeners();
+        },
+
+        setStateListeners: function () {
+            var self = this;
+
+            $('#undo').on('click', function () {
+                if (self.state.undo()) {
+                    self.splitPre();
+                }
+            });
+
+            $('#redo').on('click', function () {
+                if (self.state.redo()) {
+                    self.splitPre();
+                }
+            });
         },
         
         /*
@@ -100,11 +118,10 @@ window.htg = (function () {
                 // callback for remove one and off
                 function remove(event) {
                     $span.remove();
+                    self.state.save();
                     self.renumber();
                 }
             });
-
-            
         },
 
         /*
@@ -119,6 +136,41 @@ window.htg = (function () {
                       $pre.text().split('\n').join('\n</div><div class="editor-row">') + 
                       '</div>')
             this.renumber();
+        },
+
+        state: {
+            pointer: -1,
+
+            redo: function () {
+                if (this.pointer > this.stack.length - 2) return false;
+                this.pointer++;
+                $('#editor > pre').html(this.stack[this.pointer]);
+                return true;
+            },
+
+            save: function () {
+                // remove forward history
+                this.stack = this.stack.slice(0, this.pointer + 1);
+
+                // remove line numbers
+                $('#editor > pre span.line-number').remove();
+
+                // save text copy of file
+                this.stack.push($('#editor > pre').text());
+
+                // move pointer
+                this.pointer++;
+            },
+
+
+            undo: function () {
+                if (this.pointer < 1) return false;
+                this.pointer--;
+                $('#editor > pre').html(this.stack[this.pointer]);
+                return true;
+            },
+
+            stack: []
         }
     });
     
