@@ -104,65 +104,7 @@ window.htg = (function () {
                 }
             });
 
-            // helper for finding the word in a span from a mouse-coordinated-derived index
-            function highlightWord($span, letterIdx) {
-                var re = /\w+/g,
-                    wordIdx = 0,
-                    $wordSelect = $('#word-select'),
-                    wordIdxes = [],
-                    wordIdx,
-                    words = {},
-                    word,
-                    match,
-                    textIdx = -1,
-                    htmlIdx = -1,
-                    text,
-                    html;
-
-                // replace previous highlight with plain text
-                if ($wordSelect.length) {
-                    $wordSelect.after($wordSelect.text());
-                    $wordSelect.remove();
-                }
-
-                // get text and html as strings
-                text = $span.text();
-                html = $span.html();
-
-                // find word in text from index
-                while ((match = re.exec(text)) != null) {
-                    if (match.index > letterIdx) break;
-                    word = match[0];
-                    if (words[word] === undefined) {
-                        words[word] = 0;
-                    }
-                    else {
-                        words[word]++;
-                    }
-                }
-                textIdx = words[word];
-
-                // find index of word in html
-                re = new RegExp('[^<-]\\b(' + word + ')\\b[^>]', 'g');
-                while((match = re.exec(html)) != null && htmlIdx < textIdx) {
-                    wordIdx = match.index + 1;
-                    htmlIdx++;
-                }
-
-                // return false if user clicked on a space
-                if (!word) return false;
-
-                // wrap word in #word-select span
-                html = html.slice(0, wordIdx) + 
-                       '<span id="word-select">' + 
-                       html.slice(wordIdx, wordIdx + word.length) + 
-                       '</span>'                                  +
-                       html.slice(wordIdx + word.length, html.length);
-                $span.html(html);
-
-                // return true to indicate successful highlight
-                return true;
-            }
+            
         },
 
         /*
@@ -189,8 +131,100 @@ window.htg = (function () {
         }
     }
 
+    // helper for finding the word in a span from a mouse-coordinated-derived index
+    function highlightWord($span, letterIdx) {
+        var re = /\w+/g,
+            wordIdx = 0,
+            $wordSelect = $('#word-select'),
+            wordIdxes = [],
+            wordIdx,
+            words = {},
+            word,
+            match,
+            textIdx = -1,
+            htmlIdx = -1,
+            text,
+            html,
+            testHtml;
+
+        // replace previous highlight with plain text
+        if ($wordSelect.length) {
+            $wordSelect.after($wordSelect.text());
+            $wordSelect.remove();
+        }
+
+        // get text and html as strings
+        text = $span.text();
+        html = $span.html();
+        testHtml = stripTags(html); // replace non-text with spaces
+
+        // find word in text from index
+        while ((match = re.exec(text)) != null) {
+            if (match.index > letterIdx) break;
+            word = match[0];
+            if (words[word] === undefined) {
+                words[word] = 0;
+            }
+            else {
+                words[word]++;
+            }
+        }
+        textIdx = words[word];
+
+        // find index of word in html
+        re = new RegExp('\\b(' + word + ')\\b', 'g');
+        while((match = re.exec(testHtml)) != null && htmlIdx < textIdx) {
+            wordIdx = match.index;
+            htmlIdx++;
+        }
+
+        // return false if user clicked on a space
+        if (!word) return false;
+
+        // wrap word in #word-select span
+        html = html.slice(0, wordIdx) + 
+               '<span id="word-select">' + 
+               html.slice(wordIdx, wordIdx + word.length) + 
+               '</span>'                                  +
+               html.slice(wordIdx + word.length, html.length);
+        $span.html(html);
+
+        // return true to indicate successful highlight
+        return true;
+    }
+
+    // strip off px from css properties
     function stripPx(prop) {
          return parseFloat(prop.slice(0, prop.length -2));
+    }
+
+    // replace html tags with same-length strings
+    function stripTags(html) {
+        var re = /(<[^>]*>)/g,
+            result = '',
+            lastIdx = 0,
+            blank,
+            match;
+            
+        // build string with tags replaced with blanks
+        while((match = re.exec(html)) != null) {
+            // add previous chunk
+            result += html.slice(lastIdx, match.index);
+
+            // generate blanks
+            blank = '';
+            while (blank.length < match[0].length) blank += ' ';
+
+            // add blank string
+            result += blank;
+
+            // save the starting index for the next chunk
+            lastIdx = match.index + match[0].length;
+        }
+        // add the last chunk
+        result += html.slice(lastIdx);
+
+        return result;
     }
 })();
 
