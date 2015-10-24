@@ -1,16 +1,6 @@
 (function () {
     /* jquery plugins */
 
-    $.fn.drawHighlight = function (html, word, wordIdx) {
-        // wrap word in #word-select span
-        html = html.slice(0, wordIdx) + 
-               '<span id="word-select">' + 
-               html.slice(wordIdx, wordIdx + word.length) + 
-               '</span>'                                  +
-               html.slice(wordIdx + word.length, html.length);
-        this.html(html);
-    }
-
     // helper for finding the word in a span from a mouse-coordinated-derived index
     $.fn.highlight = function (letterIdx) {
         var wordIdx = 0,
@@ -36,10 +26,20 @@
 
         if (!word) return false;
 
-        this.drawHighlight(html, word, wordIdx);
+        drawHighlight(html, word, wordIdx, this);
 
         // return true to indicate successful highlight
         return true;
+
+        function drawHighlight(html, word, wordIdx, $el) {
+            // wrap word in #word-select span
+            html = html.slice(0, wordIdx) + 
+                   '<span id="word-select">' + 
+                   html.slice(wordIdx, wordIdx + word.length) + 
+                   '</span>'                                  +
+                   html.slice(wordIdx + word.length, html.length);
+            $el.html(html);
+        }
 
         function findLetterIndex() {
             var letter = text[letterIdx],
@@ -94,7 +94,6 @@
         }
     }
 
-
     function escapeForRegExp(str) {
         var specials = [
             // order matters for these
@@ -138,6 +137,4 @@
 
         return result;
     }
-
-
 })();

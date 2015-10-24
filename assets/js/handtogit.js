@@ -13,9 +13,6 @@ window.HTG = (function () {
     };
     
     extend(HTG.prototype, {
-        init: function () {
-                },
-
         renumber: function () {
             var $rows = $('#editor > pre > div.editor-row'),
                 numberWidth = $rows.length.toString().length;
@@ -115,6 +112,13 @@ window.HTG = (function () {
                 function remove(event) {
                     $span.remove();
                     self.state.save();
+                    self.renumber();
+                }
+            });
+
+            $pre.on('click', function (event) {
+                if (event.target === event.currentTarget) {
+                    $pre.append('<div class="editor-row"> </div>');
                     self.renumber();
                 }
             });
