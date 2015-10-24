@@ -118,7 +118,9 @@ window.HTG = (function () {
 
             $pre.on('click', function (event) {
                 if (event.target === event.currentTarget) {
+                    $pre.find('div.editor-row:last-child').append('\n');
                     $pre.append('<div class="editor-row"> </div>');
+                    self.state.save();
                     self.renumber();
                 }
             });
