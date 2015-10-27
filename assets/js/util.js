@@ -1,21 +1,29 @@
-(function () {
-    /* jquery plugins */
+HTG.prototype.util = (function () {
 
-    // helper for finding the word in a span from a mouse-coordinated-derived index
-    $.fn.highlight = function (letterIdx) {
+    return {
+        getHighlight            : getHighlight,
+        removePreviousHighlight : removePreviousHighlight
+    };
+
+    // escape chars for regex
+    function escapeForRegExp(str) {
+        var specials = [
+            // order matters for these
+            "-", "[", "]",
+            // order doesn't matter for any of these
+            "/", "{", "}", "(", ")", "*", "+", "?", ".", "\\", "^", "$", "|"
+        ],
+        regex = RegExp('[' + specials.join('\\') + ']', 'g');
+
+        return str.replace(regex, "\\$&");
+    }
+
+    // get html with with highlight of word or char based on index
+    function getHighlight(text, html, letterIdx) {
         var wordIdx = 0,
-            word,
+            testHtml = stripTags(html, text[letterIdx]),
             match,
-            text,
-            html,
-            testHtml;
-
-        replacePreviousHighlight();
-
-        // get text, html, and tag-stripped html as strings
-        text = this.text();
-        html = this.html();
-        testHtml = stripTags(html, text[letterIdx]);
+            word;
 
         if (/\w/.test(text[letterIdx])) {
             findWordIndex();
@@ -26,20 +34,11 @@
 
         if (!word) return false;
 
-        drawHighlight(html, word, wordIdx, this);
-
-        // return true to indicate successful highlight
-        return true;
-
-        function drawHighlight(html, word, wordIdx, $el) {
-            // wrap word in #word-select span
-            html = html.slice(0, wordIdx) + 
+        return html.slice(0, wordIdx) + 
                    '<span id="word-select">' + 
                    html.slice(wordIdx, wordIdx + word.length) + 
                    '</span>'                                  +
                    html.slice(wordIdx + word.length, html.length);
-            $el.html(html);
-        }
 
         function findLetterIndex() {
             var letter = text[letterIdx],
@@ -82,28 +81,17 @@
             }
         }
 
-        // replace previous highlight with plain text
-        function replacePreviousHighlight() {
-            var $wordSelect = $('#word-select');
-
-            if ($wordSelect.length) {
-                $wordSelect.after($wordSelect.text());
-                $wordSelect.off();
-                $wordSelect.remove();
-            }
-        }
     }
 
-    function escapeForRegExp(str) {
-        var specials = [
-            // order matters for these
-            "-", "[", "]",
-            // order doesn't matter for any of these
-            "/", "{", "}", "(", ")", "*", "+", "?", ".", "\\", "^", "$", "|"
-        ],
-        regex = RegExp('[' + specials.join('\\') + ']', 'g');
+    // remove previous highlight with plain text
+    function removePreviousHighlight() {
+        var $wordSelect = $('#word-select');
 
-        return str.replace(regex, "\\$&");
+        if ($wordSelect.length) {
+            $wordSelect.after($wordSelect.text());
+            $wordSelect.off();
+            $wordSelect.remove();
+        }
     }
 
     // replace html tags with same-length strings

@@ -1,13 +1,12 @@
 window.HTG = (function () {
     var $pre;
 
-    var HTG = function ($parent) {
-        $pre = $('<pre class="noselect">function () {\n    this is some code;\n}</pre>');
+    var HTG = function ($parent, language) {
+        $pre = $('<pre class="noselect"></pre>');
         $parent.append($pre);
         this.languageDefinitions = {};
-        this.setLanguage('js');
-        this.state.save();
-        this.splitPre();
+        this.setLanguage(language);
+        this.setConstants();
         this.setListeners();
         $('#goFS').on('click', toggleFullScreen);
     };
@@ -33,6 +32,36 @@ window.HTG = (function () {
             hljs.highlightBlock($pre[0]); // move to wherever you dynamically load code
         },
 
+        loadFileFromString(fileString) {
+            $pre.html(fileString);
+            this.state.save();
+            this.splitPre();
+        },
+
+        setConstants: function () {
+            var border     = $pre.css('border-width'),
+                padding    = $pre.css('padding'),
+                offset     = $pre.offset(),
+                fontWidth,
+                adjustment;
+
+            // create namespace
+            this.const = {};
+
+            // calculate average letter width by averaging appended test letters
+            $pre.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
+            this.const.fontWidth = $('#test-letters').width()/26;
+
+            // remove test letters
+            $('#test-letters').remove();
+
+            // strip px and parse into floats
+            adjustment = stripPx(border) + stripPx(padding);
+
+            // add in adjustment for border and padding
+            this.const.adjustedLeft = offset.left + adjustment;
+        },
+
         setLanguage: function (language) {
             var self   = this,
                 script = document.createElement('script'),
@@ -47,7 +76,7 @@ window.HTG = (function () {
         },
 
         setListeners: function () {
-            this.setWordSelectListener();
+            this.setSelectListeners();
             this.setStateListeners();
         },
 
@@ -71,51 +100,45 @@ window.HTG = (function () {
          * finds a word from the mouse click positiontion and highlights it
          * by wrapping it in a styled span tag
          */
-        setWordSelectListener: function () {
-            var self       = this,
-                fontSize   = $pre.css('font-size'),
-                border     = $pre.css('border-width'),
-                padding    = $pre.css('padding'),
-                offset     = $pre.offset(),
-                fontWidth,
-                adjustment, 
-                left;
-
-            // calculate average letter width
-            $pre.append('<span id="test-letter">qwertyuiopasdfghjklzxcvbnm</span>'),
-            fontWidth = $('#test-letter').width()/26;
-            $('#test-letter').remove();
-
-            // strip px and parse into floats
-            fontSize   = stripPx(fontSize);
-            adjustment = stripPx(border) + stripPx(padding);
-
-            // add in adjustment for border and padding
-            left = offset.left + adjustment;
+        setSelectListeners: function () {
+            var self = this;
 
             // listener for clicking on pre direct child-spans
             $pre.on('click', 'div.editor-row', function (event) {
-                var $span    = $(event.currentTarget),
-                    clickX   = event.pageX,
-                    position = { 
-                        left: clickX - (left - $pre.scrollLeft()) 
-                    },
-                    col = Math.ceil(position.left/fontWidth) - 1;
+                var $span  = $(event.currentTarget),
+                    col    = getTextColumn(event),
+                    text   = $span.text(),
+                    html;
 
-                // highlight word
-                $span.highlight(col);
+                // remove previous highlight
+                self.util.removePreviousHighlight();
 
-                // remove line on second click within 250ms
-                $('#word-select').one('click',remove);
+                // get html without highlight
+                html = $span.html();
 
-                // callback for remove one and off
-                function remove(event) {
-                    $span.remove();
-                    self.state.save();
-                    self.renumber();
+                // remove line on second click 
+                if (col >= text.length) {
+                    $span.one('click', function remove(event) {
+                        var col = getTextColumn(event);
+
+                        if (col >= text.length) {
+                            $span.remove();
+                            self.state.save();
+                            self.renumber();
+                        }
+                    });
+
+                    // remove listener after 2 seconds
+                    setTimeout(function () {
+                        $span.off();
+                    }, 2000);
+                }
+                else {
+                    $span.html(self.util.getHighlight(text, html, col));
                 }
             });
 
+            // add new row if click is past last row
             $pre.on('click', function (event) {
                 if (event.target === event.currentTarget) {
                     $pre.find('div.editor-row:last-child').append('\n');
@@ -124,6 +147,16 @@ window.HTG = (function () {
                     self.renumber();
                 }
             });
+
+            function getTextColumn(event) {
+                var $child  = $(event.currentTarget),
+                    $parent = $child.parent(),
+                    clickX  = event.pageX,
+                    left    = clickX - (self.const.adjustedLeft - $parent.scrollLeft()),
+                    col     = Math.ceil(left/self.const.fontWidth) - 1;
+
+                return col;
+            }
         },
 
         /*
@@ -208,7 +241,7 @@ window.HTG = (function () {
 
 window.addEventListener("load", function load(event){
     window.removeEventListener("load", load, false); //remove listener, no longer needed
-    window.htg = new HTG($('#editor'));
+    window.htg = new HTG($('#editor'), 'js');
 },false);
 
 
