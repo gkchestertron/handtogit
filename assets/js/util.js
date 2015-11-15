@@ -5,6 +5,24 @@ HTG.prototype.util = (function () {
         removePreviousHighlight : removePreviousHighlight
     };
 
+    // encode html entities as regular strings 
+    // - can't use built in because I need to convert &, <, > inside html
+    function encodeHTMLEntities(string) {
+        var re = /&[\w]{2,3};/g;
+            
+        return string.replace(re, replace);
+
+        function replace(str) {
+            var replacements = {
+                '&amp;':'&',
+                '&lt;': '<',
+                '&gt;': '>'
+            };
+
+            return replacements[str] || str;
+        }
+    }
+
     // escape chars for regex
     function escapeForRegExp(str) {
         var specials = [
@@ -21,9 +39,13 @@ HTG.prototype.util = (function () {
     // get html with with highlight of word or char based on index
     function getHighlight(text, html, letterIdx) {
         var wordIdx = 0,
-            testHtml = stripTags(html, text[letterIdx]),
+            testHtml,
             match,
             word;
+
+        text = encodeHTMLEntities(text);
+        html = encodeHTMLEntities(html);
+        testHtml = stripTags(html, text[letterIdx]);
 
         if (/\w/.test(text[letterIdx])) {
             findWordIndex();
@@ -63,8 +85,8 @@ HTG.prototype.util = (function () {
 
         function findWordIndex() {
             var re = /\w+/g,
-                textCount = -1,
-                htmlCount = -1;
+                textCount = 0,
+                htmlCount = 0;
 
             // find word in text from index
             while ((match = re.exec(text)) != null) {
@@ -74,7 +96,7 @@ HTG.prototype.util = (function () {
             }
 
             // find index of word in html
-            re = new RegExp('\\b(' + word + ')\\b', 'g');
+            // re = new RegExp('\\b(' + word + ')\\b', 'g');
             while((match = re.exec(testHtml)) != null && htmlCount < textCount) {
                 wordIdx = match.index;
                 htmlCount++;

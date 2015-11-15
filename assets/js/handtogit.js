@@ -9,6 +9,7 @@ window.HTG = (function () {
         this.setConstants();
         this.setListeners();
         $('#goFS').on('click', toggleFullScreen);
+        $('#load-file').on('change', this.loadFile.bind(this));
     };
     
     extend(HTG.prototype, {
@@ -32,7 +33,19 @@ window.HTG = (function () {
             hljs.highlightBlock($pre[0]); // move to wherever you dynamically load code
         },
 
-        loadFileFromString(fileString) {
+        loadFile: function (event) {
+            var self   = this,
+                reader = new FileReader(),
+                file   = event.currentTarget.files[0];
+
+            reader.onload = function (event) {
+                self.loadFileFromString(event.target.result);
+            }
+
+            reader.readAsText(file);
+        },
+
+        loadFileFromString: function (fileString) {
             $pre.html(fileString);
             this.state.save();
             this.splitPre();
