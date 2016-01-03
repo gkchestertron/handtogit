@@ -58,6 +58,11 @@ body, html, #app, #editor, #editor > pre {
     user-select: none;
 }
 
+#suggestions {
+    height: 80%;
+    overflow-y: scroll;
+}
+
 #word-select {
     background-color: yellow;
 }

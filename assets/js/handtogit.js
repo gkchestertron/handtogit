@@ -1,15 +1,12 @@
 window.HTG = (function () {
-    var $pre;
-
     var HTG = function ($parent, language) {
         $pre = $('<pre class="noselect"></pre>');
+        $suggestions = $('#suggestions');
         $parent.append($pre);
         this.languageDefinitions = {};
         this.setLanguage(language);
         this.setConstants();
         this.setListeners();
-        $('#goFS').on('click', toggleFullScreen);
-        $('#load-file').on('change', this.loadFile.bind(this));
     };
     
     extend(HTG.prototype, {
@@ -49,6 +46,10 @@ window.HTG = (function () {
             $pre.html(fileString);
             this.state.save();
             this.splitPre();
+        },
+
+        makeSuggestions: function ($span) {
+            $suggestions.find('tbody').append('<tr><td>here is a suggestion</td></tr>');
         },
 
         setConstants: function () {
@@ -91,6 +92,8 @@ window.HTG = (function () {
         setListeners: function () {
             this.setSelectListeners();
             this.setStateListeners();
+            $('#goFS').on('click', toggleFullScreen); // fullscreen listener
+            $('#load-file').on('change', this.loadFile.bind(this)); // load file listener
         },
 
         setStateListeners: function () {
@@ -146,8 +149,10 @@ window.HTG = (function () {
                         $span.off();
                     }, 2000);
                 }
+                // highlight word/char
                 else {
                     $span.html(self.util.getHighlight(text, html, col));
+                    self.makeSuggestions($span); // make suggestions
                 }
             });
 
