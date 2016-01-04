@@ -1,15 +1,18 @@
 window.HTG = (function () {
-    var HTG = function ($parent, language) {
-        $pre = $('<pre class="noselect"></pre>');
-        $suggestions = $('#suggestions');
-        $parent.append($pre);
-        this.languageDefinitions = {};
-        this.setLanguage(language);
+    var HTG = function () {
+        this.$pre = $('#pre');
+        this.$suggestions = $('#suggestions');
+        this.state.$pre = this.$pre;
         this.setConstants();
-        this.setListeners();
+        this.setUIListeners();
+        this.setStateListeners();
     };
     
     extend(HTG.prototype, {
+        htmlConvert: function (string, dir) {
+            return htmlConvert(string, dir);
+        },
+
         renumber: function () {
             var $rows = $('#editor > pre > div.editor-row'),
                 numberWidth = $rows.length.toString().length;
@@ -26,8 +29,6 @@ window.HTG = (function () {
                 }
                 $(this).prepend('<span class="line-number noselect">' + lineNumber + ' </span>');
             });
-
-            hljs.highlightBlock($pre[0]); // move to wherever you dynamically load code
         },
 
         loadFile: function (event) {
@@ -43,9 +44,16 @@ window.HTG = (function () {
         },
 
         loadFileFromString: function (fileString) {
-            $pre.html(fileString);
+            var self = this;
+
+            this.file = new HTGFile(fileString);
+
+            this.$pre.html('');
+            _.each(this.file.lines, function (line) {
+                self.$pre.append('<div class="editor-row">' + htmlConvert(line, 'html') + '</div>');
+            });
+
             this.state.save();
-            this.splitPre();
         },
 
         makeSuggestions: function ($span) {
@@ -53,9 +61,9 @@ window.HTG = (function () {
         },
 
         setConstants: function () {
-            var border     = $pre.css('border-width'),
-                padding    = $pre.css('padding'),
-                offset     = $pre.offset(),
+            var border     = this.$pre.css('border-width'),
+                padding    = this.$pre.css('padding'),
+                offset     = this.$pre.offset(),
                 fontWidth,
                 adjustment;
 
@@ -63,7 +71,7 @@ window.HTG = (function () {
             this.const = {};
 
             // calculate average letter width by averaging appended test letters
-            $pre.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
+            this.$pre.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
             this.const.fontWidth = $('#test-letters').width()/26;
 
             // remove test letters
@@ -89,9 +97,7 @@ window.HTG = (function () {
             };
         },
 
-        setListeners: function () {
-            this.setSelectListeners();
-            this.setStateListeners();
+        setUIListeners: function () {
             $('#goFS').on('click', toggleFullScreen); // fullscreen listener
             $('#load-file').on('change', this.loadFile.bind(this)); // load file listener
         },
@@ -116,6 +122,7 @@ window.HTG = (function () {
          * finds a word from the mouse click positiontion and highlights it
          * by wrapping it in a styled span tag
          */
+        //TODO redo this
         setSelectListeners: function () {
             var self = this;
 
@@ -208,7 +215,7 @@ window.HTG = (function () {
                 $('#editor > pre span.line-number').remove();
 
                 // save text copy of file
-                this.stack.push($pre.text());
+                this.stack.push(this.$pre.text());
 
                 // move pointer
                 this.pointer++;
@@ -218,13 +225,18 @@ window.HTG = (function () {
             undo: function () {
                 if (this.pointer < 1) return false;
                 this.pointer--;
-                $pre.html(this.stack[this.pointer]);
+                this.$pre.html(this.stack[this.pointer]);
                 return true;
             },
 
             stack: []
         }
     });
+
+    var HTGFile = function (fileString) {
+        this.fileString = fileString;
+        this.lines = fileString.split(/\n|\r/);
+    };
     
     return HTG;
 
@@ -233,6 +245,51 @@ window.HTG = (function () {
         for (var i in props) {
             obj[i] = props[i];
         }
+    }
+
+    // convert to and from html
+    function htmlConvert(string, dir) {
+        var replacements = {
+                '&'     : '&amp;',
+                '>'     : '&gt;',
+                '<'     : '&lt;',
+                '&amp;' : '&',
+                '&gt;'  : '>',
+                '&lt;'  : '<'
+            };
+
+        if (dir === 'html') {
+            string = replaceAll(string, /&|<|>/g, replacements);
+        }
+        else if (dir === 'text') {
+            string = replaceAll(string, /&lt;|&gt;/ig, replacements);
+            string = replaceAll(string, /&amp;/ig, replacements);
+        }
+        else {
+            console.error('Please provide a valid direction (text, html) for conversion');
+        }
+
+        return string;
+    }
+
+    //replace all instances with regex and object of replacements
+    function replaceAll(string, re, replacements) {
+        var replacement, 
+            match,
+            lastMatchLength = 0,
+            lastMatchIndex  = 0,
+            result = '';
+
+        while ((match = re.exec(string)) !== null) {
+            replacement = replacements[match[0]];
+            result += string.slice(lastMatchIndex + lastMatchLength, match.index) + replacement; 
+            lastMatchLength = match[0].length;
+            lastMatchIndex  = match.index;
+        }
+
+        result += string.slice(lastMatchIndex + lastMatchLength);
+
+        return result;
     }
 
     // strip off px from css properties
@@ -259,7 +316,5 @@ window.HTG = (function () {
 
 window.addEventListener("load", function load(event){
     window.removeEventListener("load", load, false); //remove listener, no longer needed
-    window.htg = new HTG($('#editor'), 'js');
+    window.htg = new HTG();
 },false);
-
-

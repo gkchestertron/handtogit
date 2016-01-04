@@ -2,9 +2,12 @@
 <html>
     <head>
     <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"> 
-
         <!-- jquery -->
         <script src="https://code.jquery.com/jquery-1.11.3.js"></script>
+
+        <!-- underscore -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+
         <!-- Latest compiled and minified CSS -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 
@@ -16,18 +19,16 @@
 
         <!-- Custom CSS -->
         <link rel="stylesheet" href="assets/style.css">
-        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/default.min.css">
-        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
 
         <!-- Custom JS -->
         <script src="assets/js/handtogit.js"></script>
-        <script src="assets/js/util.js"></script>
-        <script src="assets/js/language.js"></script>
     </head>
     <body>
         <div id="app" class="container-fluid">
             <div id="editor-wrapper" class="row-fluid">
-                <div id="editor"></div>
+                <div id="editor">
+                    <pre id="pre" class="noselect"></pre>
+                </div>
             </div>
             <div id="controls-wrapper" class="row-fluid well">
                 <div id="suggestions" class="col-xs-12">
