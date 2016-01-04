@@ -1,8 +1,8 @@
 window.HTG = (function () {
     var HTG = function () {
-        this.$pre = $('#pre');
+        this.$code = $('#pre code');
         this.$suggestions = $('#suggestions');
-        this.state.$pre = this.$pre;
+        this.state.$code = this.$code;
         this.setConstants();
         this.setUIListeners();
         this.setStateListeners();
@@ -48,11 +48,12 @@ window.HTG = (function () {
 
             this.file = new HTGFile(fileString);
 
-            this.$pre.html('');
+            this.$code.html('');
             _.each(this.file.lines, function (line) {
-                self.$pre.append('<div class="editor-row">' + htmlConvert(line, 'html') + '</div>');
+                self.$code.append(htmlConvert(line, 'html') + '\n');
             });
 
+            hljs.highlightBlock(this.$code[0]);
             this.state.save();
         },
 
@@ -61,9 +62,9 @@ window.HTG = (function () {
         },
 
         setConstants: function () {
-            var border     = this.$pre.css('border-width'),
-                padding    = this.$pre.css('padding'),
-                offset     = this.$pre.offset(),
+            var border     = this.$code.css('border-width'),
+                padding    = this.$code.css('padding'),
+                offset     = this.$code.offset(),
                 fontWidth,
                 adjustment;
 
@@ -71,7 +72,7 @@ window.HTG = (function () {
             this.const = {};
 
             // calculate average letter width by averaging appended test letters
-            this.$pre.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
+            this.$code.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
             this.const.fontWidth = $('#test-letters').width()/26;
 
             // remove test letters
@@ -127,7 +128,7 @@ window.HTG = (function () {
             var self = this;
 
             // listener for clicking on pre direct child-spans
-            $pre.on('click', 'div.editor-row', function (event) {
+            $code.on('click', 'div.editor-row', function (event) {
                 var $span  = $(event.currentTarget),
                     col    = getTextColumn(event),
                     text   = $span.text(),
@@ -164,10 +165,10 @@ window.HTG = (function () {
             });
 
             // add new row if click is past last row
-            $pre.on('click', function (event) {
+            $code.on('click', function (event) {
                 if (event.target === event.currentTarget) {
-                    $pre.find('div.editor-row:last-child').append('\n');
-                    $pre.append('<div class="editor-row"> </div>');
+                    $code.find('div.editor-row:last-child').append('\n');
+                    $code.append('<div class="editor-row"> </div>');
                     self.state.save();
                     self.renumber();
                 }
@@ -191,8 +192,8 @@ window.HTG = (function () {
             var $rows,
                 numberWidth;
             
-            $pre.html('<div class="editor-row">' + 
-                      $pre.text().split('\n').join('\n</div><div class="editor-row">') + 
+            $code.html('<div class="editor-row">' + 
+                      $code.text().split('\n').join('\n</div><div class="editor-row">') + 
                       '</div>')
             this.renumber();
         },
@@ -203,7 +204,7 @@ window.HTG = (function () {
             redo: function () {
                 if (this.pointer > this.stack.length - 2) return false;
                 this.pointer++;
-                $pre.html(this.stack[this.pointer]);
+                $code.html(this.stack[this.pointer]);
                 return true;
             },
 
@@ -215,7 +216,7 @@ window.HTG = (function () {
                 $('#editor > pre span.line-number').remove();
 
                 // save text copy of file
-                this.stack.push(this.$pre.text());
+                this.stack.push(this.$code.text());
 
                 // move pointer
                 this.pointer++;
@@ -225,7 +226,7 @@ window.HTG = (function () {
             undo: function () {
                 if (this.pointer < 1) return false;
                 this.pointer--;
-                this.$pre.html(this.stack[this.pointer]);
+                this.$code.html(this.stack[this.pointer]);
                 return true;
             },
 
