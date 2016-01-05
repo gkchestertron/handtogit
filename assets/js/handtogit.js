@@ -5,7 +5,6 @@ window.HTG = (function () {
         this.$code = $('#pre code');
         this.$suggestions = $('#suggestions');
         this.state.$code = this.$code;
-        this.setConstants();
         this.setUIListeners();
         this.setSelectListeners();
         this.setStateListeners();
@@ -38,7 +37,7 @@ window.HTG = (function () {
                     else
                         startFound = true;
 
-                    if (end < line.length - 1 && re.test(line[end]))
+                    if (end < line.length && re.test(line[end]))
                         end++;
                     else
                         endFound = true;
@@ -139,6 +138,11 @@ window.HTG = (function () {
 
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
+
+            // configure hljs to stick to language
+            hljs.configure({
+                languages: [this.$code.attr('class').split(' ')[1]]
+            });
         },
 
         setLanguage: function (language) {

@@ -1,7 +1,3 @@
-/*
-  IR_Black style (c) Vasily Mikhailitchenko <vaskas@programica.ru>
-*/
-
 .hljs {
   display: block;
   overflow-x: auto;
@@ -9,32 +5,34 @@
   white-space: pre;
   padding: 0.5em;
   background: #000;
-  color: #f8f8f8;
+  color: #33cc00;
+  font-weight: lighter;
+  font-family: monospace;
 }
 
 .hljs-comment,
 .hljs-quote,
 .hljs-meta {
-  color: #7c7c7c;
+  color: #999;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-tag,
 .hljs-name {
-  color: #96cbfe;
+  color: #ff00cc;
 }
 
 .hljs-attribute,
 .hljs-selector-id {
-  color: #ffffb6;
+  color: #3399ff;
 }
 
 .hljs-string,
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-addition {
-  color: #a8ff60;
+  color: #df6900;
 }
 
 .hljs-subst {
@@ -50,7 +48,7 @@
 .hljs-section,
 .hljs-type,
 .hljs-doctag {
-  color: #ffffb6;
+  color: #3399ff;
 }
 
 .hljs-symbol,
@@ -63,7 +61,7 @@
 
 .hljs-number,
 .hljs-deletion {
-  color:#ff73fd;
+  color:#dfc300;
 }
 
 .hljs-emphasis {
