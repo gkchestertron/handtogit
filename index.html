@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
     <head>
-    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"> 
+        <title>htg</title>
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"> 
         <!-- jquery -->
         <script src="https://code.jquery.com/jquery-1.11.3.js"></script>
 
@@ -31,19 +32,12 @@
                     <pre id="pre" class="noselect"><code></code></pre>
                 </div>
             </div>
-            <div id="controls-wrapper" class="row-fluid well">
-                <div id="suggestions" class="col-xs-12">
-                    <table class="table table-striped">
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div class="col-xs-12" id="controls">
-                    <button id="undo" class="btn btn-default">undo</button>
-                    <button id="redo" class="btn btn-default">redo</button>
-                    <button id="goFS" class="btn btn-default">fullscreen</button>
-                    <div class="btn btn-default btn-file form-group">
-                        <input title="Choose File" type="file" id="load-file" name="image-upload" data-toggle="tooltip" data-placement="right" /><i class="fa fa-file-image-o"></i> Choose File...
-                    </div>
+            <div id="controls">
+                <button id="undo" class="btn btn-default">undo</button>
+                <button id="redo" class="btn btn-default">redo</button>
+                <button id="goFS" class="btn btn-default">fullscreen</button>
+                <div class="btn btn-default btn-file form-group">
+                    <input title="Choose File" type="file" id="load-file" name="image-upload" data-toggle="tooltip" data-placement="right" /><i class="fa fa-file-image-o"></i> Choose File...
                 </div>
             </div>
         </div>

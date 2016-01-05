@@ -19,13 +19,13 @@ window.HTG = (function () {
                 lineIndex    = $row.data('line-index'),
                 line         = this.file.lines[lineIndex],
                 startChar    = line[start],
-                re           = /\w/,
+                re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
                 startFound,
                 endFound,
                 text;
 
             if (this.$row) {
-                this.$row.html(htmlConvert(this.file.lines[this.$row.data('line-index')], 'html'));
+                this.$row.html(htmlConvert(this.file.lines[this.$row.data('line-index')] + '\n', 'html'));
                 hljs.highlightBlock(this.$row[0]);
                 this.$row.removeClass('hljs');
             }
@@ -48,14 +48,17 @@ window.HTG = (function () {
             hljs.highlightBlock($row[0]);
             $row.removeClass('hljs');
             this.$row = $('span[data-line-index="' + lineIndex +'"]');
+            this.$selection = $('#selection');
+            this.selection = this.$selection.text();
         },
 
-        loadFile: function (event) {
+        loadFromFile: function (event) {
             var self   = this,
                 reader = new FileReader(),
                 file   = event.currentTarget.files[0];
 
             reader.onload = function (event) {
+                $('title').html('htg | '+file.name);
                 self.loadFromString(event.target.result);
             }
 
@@ -81,10 +84,10 @@ window.HTG = (function () {
                 lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
 
                 line = '<span class="editor-row" data-line-index="' + idx + '">' + 
-                        htmlConvert(line, 'html') + '</span>';
+                        htmlConvert(line, 'html') + '\n</span>';
 
                 return lineNumber +  line;
-            }).join('\n');
+            }).join('');
 
             this.$code.html(text);
 
@@ -93,8 +96,12 @@ window.HTG = (function () {
             // this.state.save();
         },
 
-        makeSuggestions: function ($span) {
-            $suggestions.find('tbody').append('<tr><td>here is a suggestion</td></tr>');
+        makeSuggestions: function () {
+            var suggestions = '<div class="suggestion">here is a suggestion for '+this.selection+'</div>';
+
+            $('.suggestion').remove();
+            this.$row.after(suggestions);
+            this.$row.after(suggestions);
         },
 
         renumber: function () {
@@ -154,8 +161,16 @@ window.HTG = (function () {
         },
 
         setUIListeners: function () {
+            // fullscreen
             $('#goFS').on('click', toggleFullScreen); // fullscreen listener
-            $('#load-file').on('change', this.loadFile.bind(this)); // load file listener
+
+            // upload file
+            $('#load-file').on('change', this.loadFromFile.bind(this)); // load file listener
+
+            // scroll
+            $(this.$code).on('scroll', function(){
+                $('.suggestion').css('left', $(this).scrollLeft());
+            });
         },
 
         setStateListeners: function () {
@@ -175,7 +190,12 @@ window.HTG = (function () {
         },
 
         setSelectListeners: function () {
-            this.$code.on('click', 'span.editor-row', this.getSelection.bind(this));
+            var self = this;
+
+            this.$code.on('click', 'span.editor-row', function (event) {
+                self.getSelection(event);
+                self.makeSuggestions();
+            });
         },
         
         /*
