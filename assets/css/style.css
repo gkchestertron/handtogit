@@ -63,6 +63,6 @@ body, html, #app, #editor, #editor > pre {
     overflow-y: scroll;
 }
 
-#word-select {
-    background-color: yellow;
+#selection {
+    background-color: grey;
 }

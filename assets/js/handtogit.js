@@ -1,16 +1,101 @@
 window.HTG = (function () {
+    var consts;
+
     var HTG = function () {
         this.$code = $('#pre code');
         this.$suggestions = $('#suggestions');
         this.state.$code = this.$code;
         this.setConstants();
         this.setUIListeners();
+        this.setSelectListeners();
         this.setStateListeners();
     };
     
     extend(HTG.prototype, {
-        htmlConvert: function (string, dir) {
-            return htmlConvert(string, dir);
+        // TODO refactor this - decompose
+        getSelection: function (event) {
+            var start        = getTextColumn(event),
+                end          = start + 1,
+                $row         = $(event.currentTarget),
+                lineIndex    = $row.data('line-index'),
+                line         = this.file.lines[lineIndex],
+                startChar    = line[start],
+                re           = /\w/,
+                startFound,
+                endFound,
+                text;
+
+            if (this.$row) {
+                this.$row.html(htmlConvert(this.file.lines[this.$row.data('line-index')], 'html'));
+                hljs.highlightBlock(this.$row[0]);
+                this.$row.removeClass('hljs');
+            }
+
+            if (re.test(startChar)) {
+                while (!startFound || !endFound) {
+                    if (start > 0 && re.test(line[start - 1]))
+                        start--;
+                    else
+                        startFound = true;
+
+                    if (end < line.length - 1 && re.test(line[end]))
+                        end++;
+                    else
+                        endFound = true;
+                }
+            }
+            text = addHighlight(line, start, end);
+            $row.html(text);
+            hljs.highlightBlock($row[0]);
+            $row.removeClass('hljs');
+            this.$row = $('span[data-line-index="' + lineIndex +'"]');
+        },
+
+        loadFile: function (event) {
+            var self   = this,
+                reader = new FileReader(),
+                file   = event.currentTarget.files[0];
+
+            reader.onload = function (event) {
+                self.loadFromString(event.target.result);
+            }
+
+            reader.readAsText(file);
+        },
+
+        loadFromString: function (fileString) {
+            var self = this,
+                numberWidth,
+                text;
+
+            this.file = new HTGFile(fileString);
+
+            numberWidth = this.file.lines.length.toString().length;
+
+            text = _.map(this.file.lines, function (line, idx) {
+                var lineNumber = (idx + 1).toString();
+
+                while (lineNumber.length < numberWidth) {
+                    lineNumber = ' ' + lineNumber;
+                }
+
+                lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
+
+                line = '<span class="editor-row" data-line-index="' + idx + '">' + 
+                        htmlConvert(line, 'html') + '</span>';
+
+                return lineNumber +  line;
+            }).join('\n');
+
+            this.$code.html(text);
+
+            hljs.highlightBlock(this.$code[0]);
+            this.setConstants(numberWidth);
+            // this.state.save();
+        },
+
+        makeSuggestions: function ($span) {
+            $suggestions.find('tbody').append('<tr><td>here is a suggestion</td></tr>');
         },
 
         renumber: function () {
@@ -31,58 +116,29 @@ window.HTG = (function () {
             });
         },
 
-        loadFile: function (event) {
-            var self   = this,
-                reader = new FileReader(),
-                file   = event.currentTarget.files[0];
-
-            reader.onload = function (event) {
-                self.loadFileFromString(event.target.result);
-            }
-
-            reader.readAsText(file);
-        },
-
-        loadFileFromString: function (fileString) {
-            var self = this;
-
-            this.file = new HTGFile(fileString);
-
-            this.$code.html('');
-            _.each(this.file.lines, function (line) {
-                self.$code.append(htmlConvert(line, 'html') + '\n');
-            });
-
-            hljs.highlightBlock(this.$code[0]);
-            this.state.save();
-        },
-
-        makeSuggestions: function ($span) {
-            $suggestions.find('tbody').append('<tr><td>here is a suggestion</td></tr>');
-        },
-
-        setConstants: function () {
+        setConstants: function (numberWidth) {
             var border     = this.$code.css('border-width'),
                 padding    = this.$code.css('padding'),
                 offset     = this.$code.offset(),
-                fontWidth,
                 adjustment;
 
             // create namespace
-            this.const = {};
+            this.consts = consts = {};
 
             // calculate average letter width by averaging appended test letters
-            this.$code.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm</span>'),
-            this.const.fontWidth = $('#test-letters').width()/26;
+            this.$code.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm(){}[];</span>'),
+            this.consts.fontWidth = $('#test-letters').width()/33;
 
             // remove test letters
             $('#test-letters').remove();
 
             // strip px and parse into floats
-            adjustment = stripPx(border) + stripPx(padding);
+            adjustment = stripPx(border)  + 
+                         stripPx(padding) + 
+                         (numberWidth * this.consts.fontWidth);
 
             // add in adjustment for border and padding
-            this.const.adjustedLeft = offset.left + adjustment;
+            this.consts.adjustedLeft = offset.left + adjustment;
         },
 
         setLanguage: function (language) {
@@ -118,17 +174,21 @@ window.HTG = (function () {
                 }
             });
         },
+
+        setSelectListeners: function () {
+            this.$code.on('click', 'span.editor-row', this.getSelection.bind(this));
+        },
         
         /*
          * finds a word from the mouse click positiontion and highlights it
          * by wrapping it in a styled span tag
          */
         //TODO redo this
-        setSelectListeners: function () {
+        deprecated: function () {
             var self = this;
 
             // listener for clicking on pre direct child-spans
-            $code.on('click', 'div.editor-row', function (event) {
+            this.$code.on('click', 'span.editor-row', function (event) {
                 var $span  = $(event.currentTarget),
                     col    = getTextColumn(event),
                     text   = $span.text(),
@@ -174,15 +234,7 @@ window.HTG = (function () {
                 }
             });
 
-            function getTextColumn(event) {
-                var $child  = $(event.currentTarget),
-                    $parent = $child.parent(),
-                    clickX  = event.pageX,
-                    left    = clickX - (self.const.adjustedLeft - $parent.scrollLeft()),
-                    col     = Math.ceil(left/self.const.fontWidth) - 1;
-
-                return col;
-            }
+            
         },
 
         /*
@@ -235,17 +287,40 @@ window.HTG = (function () {
     });
 
     var HTGFile = function (fileString) {
-        this.fileString = fileString;
-        this.lines = fileString.split(/\n|\r/);
+        this.fileString = replaceAll(fileString, /\t/g, { '\t': '    ' }); // replace tabs
+        this.lines      = this.fileString.split(/\n|\r/);
+
+        // remove extraneous newline if it exists
+        if (this.lines.slice(-1)[0] === "") 
+            this.lines = this.lines.slice(0, -1);
     };
     
     return HTG;
+
+    // add highlight span to string based on indices
+    function addHighlight(string, start, end) {
+        var startSlice = htmlConvert(string.slice(0, start), 'html'),
+            selection  = htmlConvert(string.slice(start, end), 'html'),
+            endSlice   = htmlConvert(string.slice(end), 'html');
+
+        return startSlice + '<span id="selection">' + selection + '</span>' + endSlice;
+    }
 
     // shallow extend function
     function extend (obj, props) {
         for (var i in props) {
             obj[i] = props[i];
         }
+    }
+
+    function getTextColumn(event) {
+        var $child  = $(event.currentTarget),
+            $parent = $child.parent(),
+            clickX  = event.pageX,
+            left    = clickX - (consts.adjustedLeft - $parent.scrollLeft()),
+            col     = Math.floor(left/consts.fontWidth) - 1;
+
+        return col;
     }
 
     // convert to and from html
@@ -282,7 +357,7 @@ window.HTG = (function () {
             result = '';
 
         while ((match = re.exec(string)) !== null) {
-            replacement = replacements[match[0]];
+            replacement = typeof(replacements) === 'function' ? replacements(match[0]) : replacements[match[0]];
             result += string.slice(lastMatchIndex + lastMatchLength, match.index) + replacement; 
             lastMatchLength = match[0].length;
             lastMatchIndex  = match.index;
