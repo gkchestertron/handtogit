@@ -5,7 +5,7 @@
   white-space: pre;
   padding: 0.5em;
   background: #000;
-  color: #33cc00;
+  color: #1fde30;
   font-weight: lighter;
   font-family: monospace;
 }
@@ -20,19 +20,19 @@
 .hljs-selector-tag,
 .hljs-tag,
 .hljs-name {
-  color: #ff00cc;
+  color: #990bff;
 }
 
 .hljs-attribute,
 .hljs-selector-id {
-  color: #3399ff;
+  color: #48c6f9;
 }
 
 .hljs-string,
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-addition {
-  color: #df6900;
+  color: #e6852f;
 }
 
 .hljs-subst {
@@ -48,7 +48,7 @@
 .hljs-section,
 .hljs-type,
 .hljs-doctag {
-  color: #3399ff;
+  color: #48c6f9;
 }
 
 .hljs-symbol,

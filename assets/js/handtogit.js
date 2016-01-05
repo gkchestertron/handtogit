@@ -138,11 +138,6 @@ window.HTG = (function () {
 
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
-
-            // configure hljs to stick to language
-            hljs.configure({
-                languages: [this.$code.attr('class').split(' ')[1]]
-            });
         },
 
         setLanguage: function (language) {
