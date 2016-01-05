@@ -67,6 +67,7 @@ window.HTG = (function () {
 
         loadFromString: function (fileString) {
             var self = this,
+                i    = 0,
                 numberWidth,
                 text;
 
@@ -90,6 +91,7 @@ window.HTG = (function () {
             }).join('');
 
             this.$code.html(text);
+            while (i++ < 30) this.$code.append('\n');
 
             hljs.highlightBlock(this.$code[0]);
             this.setConstants(numberWidth);
