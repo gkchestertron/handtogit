@@ -54,6 +54,9 @@ window.HTG = (function () {
             for (var i = startIndex; i <= endIndex; i++)
                 $rows.push($('[data-line-index="'+i+'"]'));
 
+            // reset rows reference
+            this.$rows = $rows;
+
             // add selection highlights to rows
             _.each($rows, function ($row, idx) {
                 var lineIndex = $row.data('line-index'),
@@ -75,8 +78,6 @@ window.HTG = (function () {
                 }
             });
 
-            // reset rows reference
-            this.$rows = $rows;
         },
 
         getSuggestions: function () {
@@ -141,7 +142,7 @@ window.HTG = (function () {
                 if (idx === 0) 
                     $suggestion.css({ display: 'inline-block' });
 
-                self.$row.after($suggestion);
+                self.$rows[0].after($suggestion);
             });
 
             $('.suggestion').css('left', this.$code.scrollLeft());
@@ -199,6 +200,8 @@ window.HTG = (function () {
 
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
+            this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(padding);
+            this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 30)
         },
 
         setLanguage: function (language) {
@@ -257,19 +260,17 @@ window.HTG = (function () {
                     self.dragSelect(startEvent, event);
                 });
 
-                // setTimeout(function () { // may need for touch - test tonight
-                    $(window).one('mouseup touchend', function (event) {
-                        if (!moved) {
-                            self.removeSuggestions();
-                            self.redrawSelectedRows();
-                            self.tapSelect(startEvent);
-                            if (/\w+/.test(self.selection)) {
-                                self.makeSuggestions();
-                            }
+                $(window).one('mouseup touchend', function (event) {
+                    if (!moved) {
+                        self.removeSuggestions();
+                        self.redrawSelectedRows();
+                        self.tapSelect(startEvent);
+                        if (/\w+/.test(self.selection)) {
+                            self.makeSuggestions();
                         }
-                        self.$code.off('mousemove touchmove', 'span.editor-row');
-                    });
-                // }, 500);
+                    }
+                    self.$code.off('mousemove touchmove', 'span.editor-row');
+                });
             });
         },
         
@@ -390,6 +391,8 @@ window.HTG = (function () {
                 endFound,
                 text;
 
+                getTextRow(event);
+
             if (re.test(line[start])) {
                 while (!startFound || !endFound) {
                     if (start > 0 && re.test(line[start - 1]))
@@ -404,12 +407,12 @@ window.HTG = (function () {
                 }
             }
 
-            if (this.$row)
-                this.redrawRow(this.$row);
+            if (this.$rows && this.$rows[0])
+                this.redrawRow(this.$rows[0]);
 
             text = addHighlight(line, start, end);
             this.redrawRow($row, text);
-            this.$row       = $('span[data-line-index = "' + lineIndex +'"]');
+            this.$rows      = [$('span[data-line-index = "' + lineIndex +'"]')];
             this.$selection = $('#selection');
             this.selection  = this.$selection.text();
         },
@@ -444,14 +447,25 @@ window.HTG = (function () {
         }
     }
 
+    // get text column
     function getTextColumn(event) {
         var $child  = $(event.currentTarget),
             $parent = $child.parent(),
-            clickX  = event.pageX || event.originalEvent.touches[0].pageX,
-            left    = clickX - (consts.adjustedLeft - $parent.scrollLeft()),
+            eventX  = event.pageX || event.originalEvent.touches[0].pageX,
+            left    = eventX - (consts.adjustedLeft - $parent.scrollLeft()),
             col     = Math.floor(left/consts.fontWidth) - 1;
 
         return col;
+    }
+
+    function getTextRow(event) {
+        var eventY    = event.pageY || event.originalEvent.touches[0].pageY,
+            rowHeight = consts.rowHeight;
+
+            console.log(eventY, rowHeight);
+
+            console.log(Math.floor(($('pre').scrollTop() + eventY - consts.adjustedTop)/rowHeight));
+
     }
 
     // convert to and from html
