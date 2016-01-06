@@ -26,33 +26,57 @@ window.HTG = (function () {
             }
         },
 
-        dragSelect: function ($rows, start, end) {
-            var self = this,
+        dragSelect: function (startEvent, currentEvent) {
+            var self       = this,
+                startIndex = $(startEvent.currentTarget).data('line-index'),
+                startX     = getTextColumn(startEvent),
+                startY     = startEvent.pageY || startEvent.originalEvent.touches[0].pageY,
+                endIndex   = $(currentEvent.currentTarget).data('line-index'),
+                endX       = getTextColumn(currentEvent) + 1,
+                $rows      = [],
                 temp;
 
-            this.redrawSelectedRows();
+            // swap row indices if necessary
+            if (startIndex > endIndex) {
+                temp       = startIndex;
+                startIndex = endIndex;
+                endIndex   = temp;
+            }
 
-            this.$rows = $rows;
+            // swap col indicies if necessary
+            if (startX >= endX) {
+                temp   = startX;
+                startX = endX - 1;
+                endX   = temp + 1;
+            }
 
+            // get rows
+            for (var i = startIndex; i <= endIndex; i++)
+                $rows.push($('[data-line-index="'+i+'"]'));
+
+            // add selection highlights to rows
             _.each($rows, function ($row, idx) {
                 var lineIndex = $row.data('line-index'),
-                    line      = self.file.lines[lineIndex],
-                    text; 
+                line      = self.file.lines[lineIndex],
+                text; 
 
                 if ($rows.length === 1) {
-                    self.redrawRow($rows[0], addHighlight(line, start, end));
+                    self.redrawRow($rows[0], addHighlight(line, startX, endX));
                 }
                 else {
                     if (idx === 0) 
-                        self.redrawRow($row, addHighlight(line, start, line.length));
+                        self.redrawRow($row, addHighlight(line, startX, line.length));
 
                     if (idx === $rows.length - 1) 
-                        self.redrawRow($row, addHighlight(line, 0, end));
+                        self.redrawRow($row, addHighlight(line, 0, endX));
 
                     if (idx > 0 && idx < $rows.length - 1)
                         self.redrawRow($row, addHighlight(line, 0, line.length));
                 }
             });
+
+            // reset rows reference
+            this.$rows = $rows;
         },
 
         getSuggestions: function () {
@@ -223,15 +247,15 @@ window.HTG = (function () {
             var self = this;
 
             this.$code.on('mousedown touchstart', 'span.editor-row', function (startEvent) {
-                var origIndex = $(startEvent.currentTarget).data('line-index'),
-                    origX     = getTextColumn(startEvent),
-                    // TODO calculate Y from touch position - and calculate rows from there
-                    origY     = startEvent.pageY || startEvent.originalEvent.touches[0].pageY,
-                    moved     = false;
+                var moved = false;
 
-                startEvent.preventDefault();
-
-                self.$code.on('mousemove touchmove', 'span.editor-row', select);
+                self.$code.on('mousemove touchmove', 'span.editor-row', function (event) {
+                    moved = true;
+                    event.preventDefault();
+                    self.removeSuggestions();
+                    self.redrawSelectedRows();
+                    self.dragSelect(startEvent, event);
+                });
 
                 // setTimeout(function () { // may need for touch - test tonight
                     $(window).one('mouseup touchend', function (event) {
@@ -243,40 +267,9 @@ window.HTG = (function () {
                                 self.makeSuggestions();
                             }
                         }
-                        self.$code.off('mousemove touchmove', 'span.editor-row', select);
+                        self.$code.off('mousemove touchmove', 'span.editor-row');
                     });
                 // }, 500);
-
-                function select(event) {
-                    var endIndex   = $(event.currentTarget).data('line-index'),
-                        startIndex = origIndex,
-                        startX     = origX,
-                        startY     = origY,
-                        endX       = getTextColumn(event) + 1,
-                        $rows      = [],
-                        temp;
-
-                    event.preventDefault();
-                    self.removeSuggestions();
-                    moved = true;
-
-                    if (startIndex > endIndex) {
-                        temp       = startIndex;
-                        startIndex = endIndex;
-                        endIndex   = temp;
-                    }
-
-                    if (startX >= endX) {
-                        temp   = startX;
-                        startX = endX - 1;
-                        endX   = temp + 1;
-                    }
-
-                    for (var i = startIndex; i <= endIndex; i++)
-                        $rows.push($('[data-line-index="'+i+'"]'));
-
-                    self.dragSelect($rows, startX, endX);
-                }
             });
         },
         
