@@ -119,6 +119,8 @@ window.HTG = (function () {
 
                 self.$row.after($suggestion);
             });
+
+            $('.suggestion').css('left', this.$code.scrollLeft());
         },
 
         redrawRow($row, text) {
@@ -228,13 +230,13 @@ window.HTG = (function () {
                     moved     = false;
 
                 startEvent.preventDefault();
-                self.removeSuggestions();
 
                 self.$code.on('mousemove touchmove', 'span.editor-row', select);
 
                 // setTimeout(function () { // may need for touch - test tonight
                     $(window).one('mouseup touchend', function (event) {
                         if (!moved) {
+                            self.removeSuggestions();
                             self.redrawSelectedRows();
                             self.tapSelect(startEvent);
                             if (/\w+/.test(self.selection)) {
@@ -255,6 +257,7 @@ window.HTG = (function () {
                         temp;
 
                     event.preventDefault();
+                    self.removeSuggestions();
                     moved = true;
 
                     if (startIndex > endIndex) {
