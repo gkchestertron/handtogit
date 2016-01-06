@@ -16,15 +16,21 @@ window.HTG = (function () {
     };
     
     extend(HTG.prototype, {
-        dragSelect($rows, start, end) {
-            var self = this,
-                temp;
+        redrawSelectedRows: function () {
+            var self = this;
 
             if (this.$rows) {
                 _.each(this.$rows, function ($row) {
                     self.redrawRow($row)
                 });
             }
+        },
+
+        dragSelect: function ($rows, start, end) {
+            var self = this,
+                temp;
+
+            this.redrawSelectedRows();
 
             this.$rows = $rows;
 
@@ -217,6 +223,7 @@ window.HTG = (function () {
             this.$code.on('mousedown touchstart', 'span.editor-row', function (startEvent) {
                 var origIndex = $(startEvent.currentTarget).data('line-index'),
                     origX     = getTextColumn(startEvent),
+                    // TODO calculate Y from touch position - and calculate rows from there
                     origY     = startEvent.pageY || startEvent.originalEvent.touches[0].pageY,
                     moved     = false;
 
@@ -228,6 +235,7 @@ window.HTG = (function () {
                 // setTimeout(function () { // may need for touch - test tonight
                     $(window).one('mouseup touchend', function (event) {
                         if (!moved) {
+                            self.redrawSelectedRows();
                             self.tapSelect(startEvent);
                             if (/\w+/.test(self.selection)) {
                                 self.makeSuggestions();
