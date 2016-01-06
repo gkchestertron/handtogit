@@ -5,51 +5,54 @@ window.HTG = (function () {
         this.$code = $('#pre code');
         this.$suggestions = $('#suggestions');
         this.state.$code = this.$code;
+        this.suggestions = [
+            { occurance: 3, suggestion: 'some' },
+            { occurance: 1, suggestion: 'test' },
+            { occurance: 2, suggestion: 'suggestions' },
+        ],
         this.setUIListeners();
         this.setSelectListeners();
         this.setStateListeners();
     };
     
     extend(HTG.prototype, {
-        // TODO refactor this - decompose
-        getSelection: function (event) {
-            var start        = getTextColumn(event),
-                end          = start + 1,
-                $row         = $(event.currentTarget),
-                lineIndex    = $row.data('line-index'),
-                line         = this.file.lines[lineIndex],
-                startChar    = line[start],
-                re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
-                startFound,
-                endFound,
-                text;
+        dragSelect($rows, start, end) {
+            var self = this,
+                temp;
 
-            if (this.$row) {
-                this.$row.html(htmlConvert(this.file.lines[this.$row.data('line-index')] + '\n', 'html'));
-                hljs.highlightBlock(this.$row[0]);
-                this.$row.removeClass('hljs');
+            if (this.$rows) {
+                _.each(this.$rows, function ($row) {
+                    self.redrawRow($row)
+                });
             }
 
-            if (re.test(startChar)) {
-                while (!startFound || !endFound) {
-                    if (start > 0 && re.test(line[start - 1]))
-                        start--;
-                    else
-                        startFound = true;
+            this.$rows = $rows;
 
-                    if (end < line.length && re.test(line[end]))
-                        end++;
-                    else
-                        endFound = true;
+            _.each($rows, function ($row, idx) {
+                var lineIndex = $row.data('line-index'),
+                    line      = self.file.lines[lineIndex],
+                    text; 
+
+                if ($rows.length === 1) {
+                    self.redrawRow($rows[0], addHighlight(line, start, end));
                 }
-            }
-            text = addHighlight(line, start, end);
-            $row.html(text);
-            hljs.highlightBlock($row[0]);
-            $row.removeClass('hljs');
-            this.$row = $('span[data-line-index="' + lineIndex +'"]');
-            this.$selection = $('#selection');
-            this.selection = this.$selection.text();
+                else {
+                    if (idx === 0) 
+                        self.redrawRow($row, addHighlight(line, start, line.length));
+
+                    if (idx === $rows.length - 1) 
+                        self.redrawRow($row, addHighlight(line, 0, end));
+
+                    if (idx > 0 && idx < $rows.length - 1)
+                        self.redrawRow($row, addHighlight(line, 0, line.length));
+                }
+            });
+        },
+
+        getSuggestions: function () {
+            return this.suggestions.sort(sortByOccurance).map(getSuggestion);
+            function sortByOccurance(a,b) { return a.occurance - b.occurance; }
+            function getSuggestion (obj) { return obj.suggestion; }
         },
 
         loadFromFile: function (event) {
@@ -85,10 +88,10 @@ window.HTG = (function () {
                 lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
 
                 line = '<span class="editor-row" data-line-index="' + idx + '">' + 
-                        htmlConvert(line, 'html') + '\n</span>';
+                        htmlConvert(line, 'html') + '</span>';
 
                 return lineNumber +  line;
-            }).join('');
+            }).join('\n');
 
             this.$code.html(text);
             while (i++ < 30) this.$code.append('\n');
@@ -99,11 +102,28 @@ window.HTG = (function () {
         },
 
         makeSuggestions: function () {
-            var suggestions = '<div class="suggestion">here is a suggestion for '+this.selection+'</div>';
+            var self        = this,
+                suggestions = this.getSuggestions();
 
+            _.each(suggestions, function (suggestion, idx) {
+                var $suggestion = $('<div class="suggestion">'+suggestion+'</div>');
+
+                if (idx === 0) 
+                    $suggestion.css({ display: 'inline-block' });
+
+                self.$row.after($suggestion);
+            });
+        },
+
+        redrawRow($row, text) {
+            text = text || htmlConvert(this.file.lines[$row.data('line-index')], 'html');
+            $row.html(text);
+            hljs.highlightBlock($row[0]);
+            $row.removeClass('hljs');
+        },
+
+        removeSuggestions: function () {
             $('.suggestion').remove();
-            this.$row.after(suggestions);
-            this.$row.after(suggestions);
         },
 
         renumber: function () {
@@ -194,9 +214,57 @@ window.HTG = (function () {
         setSelectListeners: function () {
             var self = this;
 
-            this.$code.on('click', 'span.editor-row', function (event) {
-                self.getSelection(event);
-                self.makeSuggestions();
+            // this.$code.on('click', 'span.editor-row', function (event) {
+            //     self.removeSuggestions();
+            //     self.tapSelect(event);
+            //     if (/\w+/.test(self.selection)) {
+            //         self.makeSuggestions();
+            //     }
+            // });
+
+            this.$code.on('mousedown touchstart', 'span.editor-row', function (event) {
+                var origIndex = $(event.currentTarget).data('line-index'),
+                    orig      = getTextColumn(event);
+
+                event.preventDefault();
+
+                self.removeSuggestions();
+
+                self.$code.on('mousemove touchmove', 'span.editor-row', select);
+
+                setTimeout(function () {
+                    $(window).one('mouseup touchend', function (event) {
+                        self.$code.off('mousemove touchmove', 'span.editor-row', select);
+                    });
+                }, 1000);
+
+                function select(event) {
+                    var endIndex   = $(event.currentTarget).data('line-index'),
+                        startIndex = origIndex,
+                        start      = orig,
+                        end        = getTextColumn(event) + 1,
+                        $rows      = [],
+                        temp;
+
+                    event.preventDefault();
+
+                    if (startIndex > endIndex) {
+                        temp       = startIndex;
+                        startIndex = endIndex;
+                        endIndex   = temp;
+                    }
+
+                    if (start > end) {
+                        temp  = start;
+                        start = end;
+                        end   = temp;
+                    }
+
+                    for (var i = startIndex; i <= endIndex; i++)
+                        $rows.push($('[data-line-index="'+i+'"]'));
+
+                    self.dragSelect($rows, start, end);
+                }
             });
         },
         
@@ -304,7 +372,44 @@ window.HTG = (function () {
             },
 
             stack: []
-        }
+        },
+
+        tapSelect: function (event) {
+            var start        = getTextColumn(event),
+                end          = start + 1,
+                $row         = $(event.currentTarget),
+                lineIndex    = $row.data('line-index'),
+                line         = this.file.lines[lineIndex],
+                re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
+                startFound,
+                endFound,
+                text;
+
+            if (re.test(line[start])) {
+                while (!startFound || !endFound) {
+                    if (start > 0 && re.test(line[start - 1]))
+                        start--;
+                    else
+                        startFound = true;
+
+                    if (end < line.length && re.test(line[end]))
+                        end++;
+                    else
+                        endFound = true;
+                }
+            }
+
+            if (this.$row)
+                this.redrawRow(this.$row);
+
+            text = addHighlight(line, start, end);
+            this.redrawRow($row, text);
+            this.$row       = $('span[data-line-index = "' + lineIndex +'"]');
+            this.$selection = $('#selection');
+            this.selection  = this.$selection.text();
+        },
+
+
     });
 
     var HTGFile = function (fileString) {
@@ -319,10 +424,10 @@ window.HTG = (function () {
     return HTG;
 
     // add highlight span to string based on indices
-    function addHighlight(string, start, end) {
-        var startSlice = htmlConvert(string.slice(0, start), 'html'),
-            selection  = htmlConvert(string.slice(start, end), 'html'),
-            endSlice   = htmlConvert(string.slice(end), 'html');
+    function addHighlight(line, start, end) {
+        var startSlice = htmlConvert(line.slice(0, start), 'html'),
+            selection  = htmlConvert(line.slice(start, end), 'html'),
+            endSlice   = htmlConvert(line.slice(end), 'html');
 
         return startSlice + '<span id="selection">' + selection + '</span>' + endSlice;
     }
@@ -337,7 +442,7 @@ window.HTG = (function () {
     function getTextColumn(event) {
         var $child  = $(event.currentTarget),
             $parent = $child.parent(),
-            clickX  = event.pageX,
+            clickX  = event.pageX || event.originalEvent.touches[0].pageX,
             left    = clickX - (consts.adjustedLeft - $parent.scrollLeft()),
             col     = Math.floor(left/consts.fontWidth) - 1;
 
