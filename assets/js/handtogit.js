@@ -214,39 +214,40 @@ window.HTG = (function () {
         setSelectListeners: function () {
             var self = this;
 
-            // this.$code.on('click', 'span.editor-row', function (event) {
-            //     self.removeSuggestions();
-            //     self.tapSelect(event);
-            //     if (/\w+/.test(self.selection)) {
-            //         self.makeSuggestions();
-            //     }
-            // });
+            this.$code.on('mousedown touchstart', 'span.editor-row', function (startEvent) {
+                var origIndex = $(startEvent.currentTarget).data('line-index'),
+                    origX     = getTextColumn(startEvent),
+                    origY     = startEvent.pageY || startEvent.originalEvent.touches[0].pageY,
+                    moved     = false;
 
-            this.$code.on('mousedown touchstart', 'span.editor-row', function (event) {
-                var origIndex = $(event.currentTarget).data('line-index'),
-                    orig      = getTextColumn(event);
-
-                event.preventDefault();
-
+                startEvent.preventDefault();
                 self.removeSuggestions();
 
                 self.$code.on('mousemove touchmove', 'span.editor-row', select);
 
-                setTimeout(function () {
+                // setTimeout(function () { // may need for touch - test tonight
                     $(window).one('mouseup touchend', function (event) {
+                        if (!moved) {
+                            self.tapSelect(startEvent);
+                            if (/\w+/.test(self.selection)) {
+                                self.makeSuggestions();
+                            }
+                        }
                         self.$code.off('mousemove touchmove', 'span.editor-row', select);
                     });
-                }, 1000);
+                // }, 500);
 
                 function select(event) {
                     var endIndex   = $(event.currentTarget).data('line-index'),
                         startIndex = origIndex,
-                        start      = orig,
-                        end        = getTextColumn(event) + 1,
+                        startX     = origX,
+                        startY     = origY,
+                        endX       = getTextColumn(event) + 1,
                         $rows      = [],
                         temp;
 
                     event.preventDefault();
+                    moved = true;
 
                     if (startIndex > endIndex) {
                         temp       = startIndex;
@@ -254,16 +255,16 @@ window.HTG = (function () {
                         endIndex   = temp;
                     }
 
-                    if (start > end) {
-                        temp  = start;
-                        start = end;
-                        end   = temp;
+                    if (startX >= endX) {
+                        temp   = startX;
+                        startX = endX - 1;
+                        endX   = temp + 1;
                     }
 
                     for (var i = startIndex; i <= endIndex; i++)
                         $rows.push($('[data-line-index="'+i+'"]'));
 
-                    self.dragSelect($rows, start, end);
+                    self.dragSelect($rows, startX, endX);
                 }
             });
         },
