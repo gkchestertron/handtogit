@@ -28,10 +28,9 @@ window.HTG = (function () {
 
         dragSelect: function (startEvent, currentEvent) {
             var self       = this,
-                startIndex = $(startEvent.currentTarget).data('line-index'),
+                startIndex = getTextRow(startEvent),
+                endIndex   = getTextRow(currentEvent),
                 startX     = getTextColumn(startEvent),
-                startY     = startEvent.pageY || startEvent.originalEvent.touches[0].pageY,
-                endIndex   = $(currentEvent.currentTarget).data('line-index'),
                 endX       = getTextColumn(currentEvent) + 1,
                 $rows      = [],
                 temp;
@@ -255,7 +254,6 @@ window.HTG = (function () {
                 self.$code.on('mousemove touchmove', 'span.editor-row', function (event) {
                     moved = true;
                     event.preventDefault();
-                    self.removeSuggestions();
                     self.redrawSelectedRows();
                     self.dragSelect(startEvent, event);
                 });
@@ -268,6 +266,9 @@ window.HTG = (function () {
                         if (/\w+/.test(self.selection)) {
                             self.makeSuggestions();
                         }
+                    }
+                    else {
+                        self.removeSuggestions();
                     }
                     self.$code.off('mousemove touchmove', 'span.editor-row');
                 });
@@ -383,16 +384,14 @@ window.HTG = (function () {
         tapSelect: function (event) {
             var start        = getTextColumn(event),
                 end          = start + 1,
-                $row         = $(event.currentTarget),
-                lineIndex    = $row.data('line-index'),
+                lineIndex    = getTextRow(event),
+                $row         = $('span[data-line-index="'+lineIndex+'"]'),
                 line         = this.file.lines[lineIndex],
                 re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
-                rowNumber    = getTextRow(event),
                 startFound,
                 endFound,
                 text;
 
-                console.log(rowNumber);
 
             if (re.test(line[start])) {
                 while (!startFound || !endFound) {
