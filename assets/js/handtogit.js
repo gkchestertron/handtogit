@@ -14,13 +14,13 @@ window.HTG = (function () {
         this.setSelectListeners();
         this.setStateListeners();
         this.loadFromString(
-"// PhantomJS doesn't support bind yet                                        \n" +
-"Function.prototype.bind = Function.prototype.bind || function (thisp) {\n" +
-"    var fn = this;\n" +
-"    return function () {\n" +
-"        return fn.apply(thisp, arguments);\n" +
-"    };\n" +
-"};\n")
+        "// PhantomJS doesn't support bind yet                                        \n" +
+        "Function.prototype.bind = Function.prototype.bind || function (thisp) {\n" +
+        "    var fn = this;\n" +
+        "    return function () {\n" +
+        "        return fn.apply(thisp, arguments);\n" +
+        "    };\n" +
+        "};\n")
     };
     
     extend(HTG.prototype, {
@@ -37,12 +37,21 @@ window.HTG = (function () {
         dragSelect: function (startEvent, currentEvent) {
             var self       = this,
                 startIndex = getTextRow(startEvent),
-                endIndex   = getTextRow(currentEvent),
+                endIndex   = getTextRow(currentEvent) - 2,
                 startX     = getTextColumn(startEvent),
                 endX       = getTextColumn(currentEvent) + 1,
                 $rows      = [],
                 $row,
                 temp;
+
+            if (endIndex < 0) return;
+
+            // swap col indicies if necessary
+            if ((startIndex === endIndex && startX >= endX) || startIndex > endIndex) {
+                temp   = startX;
+                startX = endX - 1;
+                endX   = temp + 1;
+            }
 
             // swap row indices if necessary
             if (startIndex > endIndex) {
@@ -60,18 +69,11 @@ window.HTG = (function () {
             // reset rows reference
             this.$rows = $rows;
 
-            // swap col indicies if necessary
-            if ($rows.length === 1 && startX >= endX) {
-                temp   = startX;
-                startX = endX - 1;
-                endX   = temp + 1;
-            }
-
             // add selection highlights to rows
             _.each($rows, function ($row, idx) {
                 var lineIndex = $row.data('line-index'),
-                line      = self.file.lines[lineIndex],
-                text; 
+                    line      = self.file.lines[lineIndex],
+                    text; 
 
                 if ($rows.length === 1) {
                     self.redrawRow($rows[0], addHighlight(line, startX, endX));
@@ -260,7 +262,13 @@ window.HTG = (function () {
 
             // this.$code.on('touchstart touchstart', function (startEvent) {
             this.$overlay.on('touchstart mousedown', function(startEvent){
-                var moved = false;
+                var moved = false,
+                    col   = getTextColumn(startEvent),
+                    row   = getTextRow(startEvent),
+                    line  = self.file.lines[row],
+                    chr   = line && line[col];
+
+                if (!chr) return;
 
                 self.$overlay.on('touchmove mousemove', touchmove);
 
@@ -292,10 +300,6 @@ window.HTG = (function () {
                 }
 
             });
-            // $(document).on('touchmove scroll', function (event) { event.preventDefault(); return false; });
-            // self.$code.css('overflow-x', 'hidden');
-            // $('pre').css('overflow', 'hidden');
-            // $('body').css('overflow', 'hidden');
         },
         
         /*

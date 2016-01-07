@@ -38,8 +38,9 @@ body, html, #app, #editor, #editor > pre {
 
 #editor > pre {
     background: #000;
-    font-size: 16px;
+    font-size: 18px;
     padding: 0px;
+    position: relative;
 }
 
 .editor-row {
@@ -62,7 +63,7 @@ body, html, #app, #editor, #editor > pre {
 
 #overlay {
     height: 100%;
-    position: fixed;
+    position: absolute;
     top: 0;
     width: 100%;
 }
