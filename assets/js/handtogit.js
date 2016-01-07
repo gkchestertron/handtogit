@@ -201,7 +201,7 @@ window.HTG = (function () {
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
             this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(padding);
-            this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 30)
+            this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 29)
         },
 
         setLanguage: function (language) {
@@ -262,9 +262,9 @@ window.HTG = (function () {
 
                 $(window).one('mouseup touchend', function (event) {
                     if (!moved) {
-                        self.removeSuggestions();
                         self.redrawSelectedRows();
                         self.tapSelect(startEvent);
+                        self.removeSuggestions();
                         if (/\w+/.test(self.selection)) {
                             self.makeSuggestions();
                         }
@@ -387,11 +387,12 @@ window.HTG = (function () {
                 lineIndex    = $row.data('line-index'),
                 line         = this.file.lines[lineIndex],
                 re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
+                rowNumber    = getTextRow(event),
                 startFound,
                 endFound,
                 text;
 
-                getTextRow(event);
+                console.log(rowNumber);
 
             if (re.test(line[start])) {
                 while (!startFound || !endFound) {
@@ -460,12 +461,14 @@ window.HTG = (function () {
 
     function getTextRow(event) {
         var eventY    = event.pageY || event.originalEvent.touches[0].pageY,
-            rowHeight = consts.rowHeight;
+            rowHeight = consts.rowHeight,
+            rowNumber = Math.floor(($('pre').scrollTop() + eventY - consts.adjustedTop)/rowHeight),
+            $suggestions = $('.suggestion');
 
-            console.log(eventY, rowHeight);
+        if ($suggestions.length && $suggestions.offset().top < eventY)
+            rowNumber -= $suggestions.length;
 
-            console.log(Math.floor(($('pre').scrollTop() + eventY - consts.adjustedTop)/rowHeight));
-
+        return rowNumber;
     }
 
     // convert to and from html
