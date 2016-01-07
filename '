@@ -3,7 +3,7 @@ window.HTG = (function () {
 
     var HTG = function () {
         this.$code = $('#pre code');
-        this.$overlay = $('#overlay');
+        this.$suggestions = $('#suggestions');
         this.state.$code = this.$code;
         this.suggestions = [
             { occurance: 3, suggestion: 'some' },
@@ -72,6 +72,9 @@ window.HTG = (function () {
                 var lineIndex = $row.data('line-index'),
                 line      = self.file.lines[lineIndex],
                 text; 
+
+                $row.css('background-color', '#666');
+                return;
 
                 if ($rows.length === 1) {
                     self.redrawRow($rows[0], addHighlight(line, startX, endX));
@@ -259,12 +262,12 @@ window.HTG = (function () {
             var self = this;
 
             // this.$code.on('touchstart touchstart', function (startEvent) {
-            this.$overlay.on('touchstart mousedown', function(startEvent){
+            this.$code.on('touchstart mousedown', function(startEvent){
                 var moved = false;
 
-                self.$overlay.on('touchmove mousemove', touchmove);
+                self.$code.on('touchmove mousemove', touchmove);
 
-                self.$overlay.on('touchend touchcancel touchleave mouseup', touchend);
+                self.$code.on('touchend touchcancel touchleave mouseup', touchend);
 
                 function touchmove(event){
                     moved = true;
@@ -286,9 +289,9 @@ window.HTG = (function () {
                         self.removeSuggestions();
                     }
 
-                    // self.$overlay.off('touchmove touchmove');
-                    self.$overlay.off('touchmove mousemove', touchmove);
-                    self.$overlay.off('touchend touchcancel touchleave mouseup', touchend);
+                    // self.$code.off('touchmove touchmove');
+                    self.$code.off('touchmove mousemove', touchmove);
+                    self.$code.off('touchend touchcancel touchleave mouseup', touchend);
                 }
 
             });

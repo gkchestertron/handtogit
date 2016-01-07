@@ -38,7 +38,7 @@ body, html, #app, #editor, #editor > pre {
 
 #editor > pre {
     background: #000;
-    font-size: 14px;
+    font-size: 16px;
     padding: 0px;
 }
 
@@ -58,6 +58,13 @@ body, html, #app, #editor, #editor > pre {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+
+#overlay {
+    height: 100%;
+    position: fixed;
+    top: 0;
+    width: 100%;
 }
 
 .suggestion {
