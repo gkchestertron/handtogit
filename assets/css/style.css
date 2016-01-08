@@ -1,3 +1,17 @@
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+#editor {
+    height: 100%;
+    /* TODO make this work anywhere on the page */
+    /* height: 300px; */
+    /* width: 400px; */
+    /* margin-top: 100px; */
+    /* margin-left: 200px; */
+}
+
 .htg-btn-file {                          
     position: relative;
     overflow: hidden;
@@ -19,6 +33,21 @@
     display: block;
 }
 
+.htg-code {
+    padding-top: 35px !important;
+}
+
+.htg-filename {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: green;
+    font-size: 20px;
+    padding: 5px 5px 5px 15px;
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    z-index: 101;
+}
+
 #controls {
     position: fixed;
     bottom: 0px;
@@ -26,7 +55,10 @@
 
 .htg-pre {
     background: #000;
+    border: 1px solid black;
     font-size: 18px;
+    height: 100%;
+    overflow: auto;
     padding: 0px;
     position: relative;
 }
@@ -58,13 +90,19 @@
     padding-left: 5px;
     position: relative;
     width: 100%;
+    z-index: 102;
 }
 
-.suggestion:hover {
+.htg-suggestion:hover {
     background-color: #666;
     position: relative;
 }
 
 .htg-selection {
     background-color: #333;
+}
+
+.htg-wrapper {
+    height: 100%;
+    position: relative;
 }

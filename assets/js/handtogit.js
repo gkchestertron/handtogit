@@ -19,18 +19,25 @@ window.HTG = (function () {
         "    return function () {\n" +
         "        return fn.apply(thisp, arguments);\n" +
         "    };\n" +
-        "};\n")
+        "};\n");
+        this.setLanguage('javascript');
     };
     
     extend(HTG.prototype, {
         buildTemplate: function ($element) {
+            // setup objects
             this.$element    = $element;
+            this.$wrapper     = $('<div class="htg-wrapper"></div>');
             this.$pre        = $('<pre class="noselect htg-pre"></pre>');
+            this.$filename   = $('<div class="htg-filename">test-file.js</div>');
             this.$code       = $('<code class="htg-code"></code>');
             this.$overlay    = $('<div class="htg-overlay"></div>');
             this.state.$code = this.$code;
 
-            this.$element.append(this.$pre);
+            // append the things
+            this.$element.append(this.$wrapper);
+            this.$wrapper.append(this.$filename);
+            this.$wrapper.append(this.$pre);
             this.$pre.append(this.$code);
             this.$pre.append(this.$overlay);
         },
@@ -114,6 +121,7 @@ window.HTG = (function () {
                 file   = event.currentTarget.files[0];
 
             reader.onload = function (event) {
+                self.$filename.html(file.name);
                 self.loadFromString(event.target.result);
             }
 
@@ -155,12 +163,12 @@ window.HTG = (function () {
 
         makeSuggestions: function () {
             var self        = this,
-                suggestions = this.getSuggestions();
+                suggestions = this.language.getSuggestions(this.selection.text[0], 5);
 
             _.each(suggestions, function (suggestion, idx) {
                 var $suggestion = $('<div class="htg-suggestion">'+suggestion+'</div>');
 
-                if (idx === 0) 
+                if (idx === 0 && suggestions.length > 1) 
                     $suggestion.css({ display: 'inline-block' });
 
                 self.$rows[0].after($suggestion);
@@ -176,6 +184,16 @@ window.HTG = (function () {
             $row.removeClass('hljs');
         },
 
+        replaceSelection(text) {
+            var line = this.selection.line,
+                startSlice = line.slice(0, this.selection.start),
+                endSlice = line.slice(this.selection.end),
+                lineText = startSlice + text + endSlice;
+
+            this.file.lines[this.selection.lineIndex] = lineText;
+            this.redrawRow(this.selection.$row);
+        },
+
         removeSuggestions: function () {
             $('.htg-suggestion').remove();
         },
@@ -187,9 +205,10 @@ window.HTG = (function () {
         },
 
         setConstants: function (numberWidth) {
-            var border     = this.$code.css('border-width'),
-                padding    = this.$code.css('padding'),
-                offset     = this.$code.offset(),
+            var border      = this.$code.css('border-width'),
+                paddingTop  = this.$code.css('padding-top'),
+                paddingLeft = this.$code.css('padding-left'),
+                offset      = this.$code.offset(),
                 adjustment;
 
             // create namespace
@@ -204,12 +223,12 @@ window.HTG = (function () {
 
             // strip px and parse into floats
             adjustment = stripPx(border)  + 
-                         stripPx(padding) + 
+                         stripPx(paddingLeft) + 
                          (numberWidth * this.consts.fontWidth);
 
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
-            this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(padding);
+            this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(paddingTop);
             this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 29)
 
             // resize overlay
@@ -225,7 +244,7 @@ window.HTG = (function () {
             head.appendChild(script);
 
             script.onload = function () {
-                self.language = new self.LanguageBase(self.languageDefinitions[language]);
+                self.language = new self.LanguageBase(HTG.LDEFS[language]);
             };
         },
 
@@ -236,7 +255,7 @@ window.HTG = (function () {
             $('.htg-goFS').on('click', toggleFullScreen); // fullscreen listener
 
             // upload file
-            this.$('.htg-load-file').on('change', this.loadFromFile.bind(this)); // load file listener
+            $('.htg-load-file').on('change', this.loadFromFile.bind(this)); // load file listener
 
             // scroll
             this.$pre.on('scroll', function(){
@@ -302,6 +321,10 @@ window.HTG = (function () {
                     self.$overlay.off('touchend touchcancel touchleave mouseup', touchend);
                 }
 
+            });
+
+            this.$code.on('click', '.htg-suggestion', function (event) {
+                self.replaceSelection(event.currentTarget.innerText);
             });
         },
 
@@ -373,7 +396,15 @@ window.HTG = (function () {
             this.redrawRow($row, text);
             this.$rows      = [$('span[data-line-index = "' + lineIndex +'"]')];
             this.$selection = this.$('.htg-selection');
-            this.selection  = this.$selection.text();
+            this.selection  = { 
+                end: end,
+                line: line,
+                lineIndex: lineIndex,
+                $row: $row,
+                start: start,
+                text: this.$selection.text(),
+            };
+
         }
     });
 
