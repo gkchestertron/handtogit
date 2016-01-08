@@ -27,17 +27,28 @@ window.HTG = (function () {
         buildTemplate: function ($element) {
             // setup objects
             this.$element    = $element;
-            this.$wrapper     = $('<div class="htg-wrapper"></div>');
+            this.$wrapper    = $('<div class="htg-wrapper"></div>');
             this.$pre        = $('<pre class="noselect htg-pre"></pre>');
             this.$filename   = $('<div class="htg-filename">test-file.js</div>');
             this.$code       = $('<code class="htg-code"></code>');
             this.$overlay    = $('<div class="htg-overlay"></div>');
+            this.$controls   = $(
+                '<div class="htg-controls">' +
+                    '<div class="htg-keyboard"></div>' +
+                    '<button class="htg-undo btn btn-default">undo</button>' +
+                    '<button class="htg-redo btn btn-default">redo</button>' +
+                    '<button class="htg-goFS btn btn-default">fullscreen</button>' +
+                    '<div class="btn btn-default htg-btn-file form-group">' +
+                        '<input title="Choose File" type="file" class="htg-load-file" name="image-upload" data-toggle="tooltip" data-placement="right" /><i class="fa fa-file-image-o"></i> Choose File...' +
+                    '</div>' +
+                '</div>');
             this.state.$code = this.$code;
 
             // append the things
             this.$element.append(this.$wrapper);
             this.$wrapper.append(this.$filename);
             this.$wrapper.append(this.$pre);
+            this.$wrapper.append(this.$controls);
             this.$pre.append(this.$code);
             this.$pre.append(this.$overlay);
         },
@@ -109,6 +120,17 @@ window.HTG = (function () {
             });
         },
 
+        drawKeyboard: function () {
+            var self = this, 
+                keys = '';
+
+            _.each(_.range(97, 123), function (num) { 
+                keys += String.fromCharCode(num);
+            });
+
+            self.$('.htg-keyboard').html(keys);
+        },
+
         getSuggestions: function () {
             return this.suggestions.sort(sortByOccurance).map(getSuggestion);
             function sortByOccurance(a,b) { return a.occurance - b.occurance; }
@@ -158,12 +180,15 @@ window.HTG = (function () {
 
             hljs.highlightBlock(this.$code[0]);
             this.setConstants(numberWidth);
+            if (this.language)
+                this.file.buildWordList(this.language);
             // this.state.save();
         },
 
         makeSuggestions: function () {
             var self        = this,
-                suggestions = this.language.getSuggestions(this.selection.text[0], 5);
+                // suggestions = this.language.getSuggestions(this.selection.text[0], 5);
+                suggestions = this.file.getSuggestions(this.selection.text[0], 5);
 
             _.each(suggestions, function (suggestion, idx) {
                 var $suggestion = $('<div class="htg-suggestion">'+suggestion+'</div>');
@@ -245,6 +270,7 @@ window.HTG = (function () {
 
             script.onload = function () {
                 self.language = new self.LanguageBase(HTG.LDEFS[language]);
+                self.file.buildWordList(self.language);
             };
         },
 
@@ -416,6 +442,32 @@ window.HTG = (function () {
         if (this.lines.slice(-1)[0] === "") 
             this.lines = this.lines.slice(0, -1);
     };
+
+    extend(HTGFile.prototype, {
+        buildWordList: function (language) {
+            var self = this;
+
+            this.words = [];
+
+            _.each(this.fileString.match(/\w+/g), function (word) {
+                if (
+                    language.defs.keywords.indexOf(word) === -1 &&
+                    self.words.indexOf(word) === -1
+                ) {
+                    self.words.push(word);
+                }
+            });
+        },
+
+        getSuggestions: function (match, limit) {
+            var re = match ? new RegExp('^'+match+'.*', 'i') : /\w+/;
+                suggestions = _.filter(this.words, function (word) {
+                    return re.test(word);
+                });
+
+            return suggestions.slice(0, limit);
+        }
+    });
     
     return HTG;
 
