@@ -1,10 +1,9 @@
 window.HTG = (function () {
     var consts;
 
-    var HTG = function () {
-        this.$code = $('#pre code');
-        this.$overlay = $('#overlay');
-        this.state.$code = this.$code;
+    var HTG = function ($element) {
+        this.buildTemplate($element);
+        this.$ = this.$element.find.bind(this.$element);;
         this.suggestions = [
             { occurance: 3, suggestion: 'some' },
             { occurance: 1, suggestion: 'test' },
@@ -24,6 +23,18 @@ window.HTG = (function () {
     };
     
     extend(HTG.prototype, {
+        buildTemplate: function ($element) {
+            this.$element    = $element;
+            this.$pre        = $('<pre class="noselect htg-pre"></pre>');
+            this.$code       = $('<code class="htg-code"></code>');
+            this.$overlay    = $('<div class="htg-overlay"></div>');
+            this.state.$code = this.$code;
+
+            this.$element.append(this.$pre);
+            this.$pre.append(this.$code);
+            this.$pre.append(this.$overlay);
+        },
+
         redrawSelectedRows: function () {
             var self = this;
 
@@ -37,9 +48,9 @@ window.HTG = (function () {
         dragSelect: function (startEvent, currentEvent) {
             var self       = this,
                 startIndex = getTextRow(startEvent),
-                endIndex   = getTextRow(currentEvent) - 2,
+                endIndex   = getTextRow(currentEvent) - 1, // lets you get your finger out of the way
                 startX     = getTextColumn(startEvent),
-                endX       = getTextColumn(currentEvent) + 1,
+                endX       = getTextColumn(currentEvent) + 1, // need length of at least one
                 $rows      = [],
                 $row,
                 temp;
@@ -62,7 +73,7 @@ window.HTG = (function () {
 
             // get rows
             for (var i = startIndex; i <= endIndex; i++) {
-                $row = $('[data-line-index="'+i+'"]');
+                $row = this.$('[data-line-index="'+i+'"]');
                 if ($row.length) $rows.push($row);
             }
 
@@ -103,7 +114,6 @@ window.HTG = (function () {
                 file   = event.currentTarget.files[0];
 
             reader.onload = function (event) {
-                $('title').html('htg | '+file.name);
                 self.loadFromString(event.target.result);
             }
 
@@ -129,7 +139,7 @@ window.HTG = (function () {
 
                 lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
 
-                line = '<span class="editor-row" data-line-index="' + idx + '">' + 
+                line = '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
                         htmlConvert(line, 'html') + '</span>';
 
                 return lineNumber +  line;
@@ -148,7 +158,7 @@ window.HTG = (function () {
                 suggestions = this.getSuggestions();
 
             _.each(suggestions, function (suggestion, idx) {
-                var $suggestion = $('<div class="suggestion">'+suggestion+'</div>');
+                var $suggestion = $('<div class="htg-suggestion">'+suggestion+'</div>');
 
                 if (idx === 0) 
                     $suggestion.css({ display: 'inline-block' });
@@ -156,7 +166,7 @@ window.HTG = (function () {
                 self.$rows[0].after($suggestion);
             });
 
-            $('.suggestion').css('left', this.$code.scrollLeft());
+            $('.htg-suggestion').css('left', this.$pre.scrollLeft());
         },
 
         redrawRow: function ($row, text) {
@@ -167,25 +177,13 @@ window.HTG = (function () {
         },
 
         removeSuggestions: function () {
-            $('.suggestion').remove();
+            $('.htg-suggestion').remove();
         },
 
-        renumber: function () {
-            var $rows = $('#editor > pre > div.editor-row'),
-                numberWidth = $rows.length.toString().length;
-            
-            // remove numbers
-            $('#editor > pre span.line-number').remove();
-
-            // make new line number spans
-            $rows.each(function (i) {
-                var lineNumber = (i + 1).toString();
-
-                while (lineNumber.length < numberWidth) {
-                    lineNumber = ' ' + lineNumber;
-                }
-                $(this).prepend('<span class="line-number noselect">' + lineNumber + ' </span>');
-            });
+        resizeOverlay: function () {
+            this.$overlay.width($(_.max(this.$('.htg-editor-row'), function (row) { 
+                return $(row).width(); 
+            })).width());
         },
 
         setConstants: function (numberWidth) {
@@ -198,11 +196,11 @@ window.HTG = (function () {
             this.consts = consts = {};
 
             // calculate average letter width by averaging appended test letters
-            this.$code.append('<span id="test-letters">qwertyuiopasdfghjklzxcvbnm(){}[];</span>'),
-            this.consts.fontWidth = $('#test-letters').width()/33;
+            this.$code.append('<span id="htg-test-letters">qwertyuiopasdfghjklzxcvbnm(){}[];</span>'),
+            this.consts.fontWidth = $('#htg-test-letters').width()/33;
 
             // remove test letters
-            $('#test-letters').remove();
+            $('#htg-test-letters').remove();
 
             // strip px and parse into floats
             adjustment = stripPx(border)  + 
@@ -213,6 +211,9 @@ window.HTG = (function () {
             this.consts.adjustedLeft = offset.left + adjustment;
             this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(padding);
             this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 29)
+
+            // resize overlay
+            this.resizeOverlay();
         },
 
         setLanguage: function (language) {
@@ -229,28 +230,30 @@ window.HTG = (function () {
         },
 
         setUIListeners: function () {
+            var self = this;
+
             // fullscreen
-            $('#goFS').on('click', toggleFullScreen); // fullscreen listener
+            $('.htg-goFS').on('click', toggleFullScreen); // fullscreen listener
 
             // upload file
-            $('#load-file').on('change', this.loadFromFile.bind(this)); // load file listener
+            this.$('.htg-load-file').on('change', this.loadFromFile.bind(this)); // load file listener
 
             // scroll
-            $(this.$code).on('scroll', function(){
-                $('.suggestion').css('left', $(this).scrollLeft());
+            this.$pre.on('scroll', function(){
+                self.$('.htg-suggestion').css('left', self.$pre.scrollLeft());
             });
         },
 
         setStateListeners: function () {
             var self = this;
 
-            $('#undo').on('click', function () {
+            this.$('.htg-undo').on('click', function () {
                 if (self.state.undo()) {
                     self.splitPre();
                 }
             });
 
-            $('#redo').on('click', function () {
+            this.$('.htg-redo').on('click', function () {
                 if (self.state.redo()) {
                     self.splitPre();
                 }
@@ -301,77 +304,6 @@ window.HTG = (function () {
 
             });
         },
-        
-        /*
-         * finds a word from the mouse click positiontion and highlights it
-         * by wrapping it in a styled span tag
-         */
-        //TODO redo this
-        deprecated: function () {
-            var self = this;
-
-            // listener for clicking on pre direct child-spans
-            this.$code.on('click', 'span.editor-row', function (event) {
-                var $span  = $(event.currentTarget),
-                    col    = getTextColumn(event),
-                    text   = $span.text(),
-                    html;
-
-                // remove previous highlight
-                self.util.removePreviousHighlight();
-
-                // get html without highlight
-                html = $span.html();
-
-                // remove line on second click 
-                if (col >= text.length) {
-                    $span.one('click', function remove(event) {
-                        var col = getTextColumn(event);
-
-                        if (col >= text.length) {
-                            $span.remove();
-                            self.state.save();
-                            self.renumber();
-                        }
-                    });
-
-                    // remove listener after 2 seconds
-                    setTimeout(function () {
-                        $span.off();
-                    }, 2000);
-                }
-                // highlight word/char
-                else {
-                    $span.html(self.util.getHighlight(text, html, col));
-                    self.makeSuggestions($span); // make suggestions
-                }
-            });
-
-            // add new row if click is past last row
-            $code.on('click', function (event) {
-                if (event.target === event.currentTarget) {
-                    $code.find('div.editor-row:last-child').append('\n');
-                    $code.append('<div class="editor-row"> </div>');
-                    self.state.save();
-                    self.renumber();
-                }
-            });
-
-            
-        },
-
-        /*
-         * wraps each line in a span tag for easier listening
-         */
-        splitPre: function () {
-            var $rows,
-                numberWidth;
-            
-            $code.html('<div class="editor-row">' + 
-                      $code.text().split('\n').join('\n</div><div class="editor-row">') + 
-                      '</div>')
-            this.renumber();
-        },
 
         state: {
             pointer: -1,
@@ -412,7 +344,7 @@ window.HTG = (function () {
             var start        = getTextColumn(event),
                 end          = start + 1,
                 lineIndex    = getTextRow(event),
-                $row         = $('span[data-line-index="'+lineIndex+'"]'),
+                $row         = this.$('span[data-line-index="'+lineIndex+'"]'),
                 line         = this.file.lines[lineIndex],
                 re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
                 startFound,
@@ -440,11 +372,9 @@ window.HTG = (function () {
             text = addHighlight(line, start, end);
             this.redrawRow($row, text);
             this.$rows      = [$('span[data-line-index = "' + lineIndex +'"]')];
-            this.$selection = $('#selection');
+            this.$selection = this.$('.htg-selection');
             this.selection  = this.$selection.text();
-        },
-
-
+        }
     });
 
     var HTGFile = function (fileString) {
@@ -464,7 +394,7 @@ window.HTG = (function () {
             selection  = htmlConvert(line.slice(start, end), 'html'),
             endSlice   = htmlConvert(line.slice(end), 'html');
 
-        return startSlice + '<span id="selection">' + selection + '</span>' + endSlice;
+        return startSlice + '<span class="htg-selection">' + selection + '</span>' + endSlice;
     }
 
     // shallow extend function
@@ -489,7 +419,7 @@ window.HTG = (function () {
         var eventY    = event.pageY || event.originalEvent.touches[0].pageY,
             rowHeight = consts.rowHeight,
             rowNumber = Math.floor(($('pre').scrollTop() + eventY - consts.adjustedTop)/rowHeight),
-            $suggestions = $('.suggestion');
+            $suggestions = $('.htg-suggestion');
 
         if ($suggestions.length && $suggestions.offset().top < eventY)
             rowNumber -= $suggestions.length;
@@ -566,5 +496,5 @@ window.HTG = (function () {
 
 window.addEventListener("load", function load(event){
     window.removeEventListener("load", load, false); //remove listener, no longer needed
-    window.htg = new HTG();
+    window.htg = new HTG($('#editor'));
 },false);

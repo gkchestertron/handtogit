@@ -1,21 +1,9 @@
-#app {
-    padding: 0px;
-}
-
-body {
-    overflow: hidden;
-}
-
-body, html, #app, #editor, #editor > pre {
-    height: 100%;
-}
-
-.btn-file {                          
+.htg-btn-file {                          
     position: relative;
     overflow: hidden;
 }
 
-.btn-file input[type=file] {
+.htg-btn-file input[type=file] {
     position: absolute;
     top: 0;
     right: 0;
@@ -36,20 +24,15 @@ body, html, #app, #editor, #editor > pre {
     bottom: 0px;
 }
 
-#editor > pre {
+.htg-pre {
     background: #000;
     font-size: 18px;
     padding: 0px;
     position: relative;
 }
 
-.editor-row {
+.htg-editor-row {
     width: 100%;
-}
-
-#editor-wrapper {
-    height: 100%;
-    cursor: default;
 }
 
 .noselect {
@@ -61,14 +44,14 @@ body, html, #app, #editor, #editor > pre {
     user-select: none;
 }
 
-#overlay {
+.htg-overlay {
     height: 100%;
     position: absolute;
     top: 0;
     width: 100%;
 }
 
-.suggestion {
+.htg-suggestion {
     background-color: #333;
     color: #999;
     margin-top: 3px;
@@ -82,6 +65,6 @@ body, html, #app, #editor, #editor > pre {
     position: relative;
 }
 
-#selection {
+.htg-selection {
     background-color: #333;
 }
