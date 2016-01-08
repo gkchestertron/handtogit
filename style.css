@@ -1,0 +1,13 @@
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+#editor {
+    height: 100%;
+    /* TODO make this work anywhere on the page */
+    /* height: 300px; */
+    /* width: 400px; */
+    /* margin-top: 100px; */
+    /* margin-left: 200px; */
+}

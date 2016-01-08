@@ -1,4 +1,4 @@
-window.HTG = (function () {
+window.HTG = window.HTG || (function () {
     var consts;
 
     var HTG = function ($element) {
@@ -23,7 +23,7 @@ window.HTG = (function () {
         this.setLanguage('javascript');
     };
     
-    extend(HTG.prototype, {
+    $.extend(HTG.prototype, {
         buildTemplate: function ($element) {
             // setup objects
             this.$element    = $element;
@@ -65,10 +65,10 @@ window.HTG = (function () {
 
         dragSelect: function (startEvent, currentEvent) {
             var self       = this,
-                startIndex = getTextRow(startEvent),
-                endIndex   = getTextRow(currentEvent) - 1, // lets you get your finger out of the way
-                startX     = getTextColumn(startEvent),
-                endX       = getTextColumn(currentEvent) + 1, // need length of at least one
+                startIndex = HTG.getTextRow(startEvent),
+                endIndex   = HTG.getTextRow(currentEvent) - 1, // lets you get your finger out of the way
+                startX     = HTG.getTextColumn(startEvent),
+                endX       = HTG.getTextColumn(currentEvent) + 1, // need length of at least one
                 $rows      = [],
                 $row,
                 temp;
@@ -105,17 +105,17 @@ window.HTG = (function () {
                     text; 
 
                 if ($rows.length === 1) {
-                    self.redrawRow($rows[0], addHighlight(line, startX, endX));
+                    self.redrawRow($rows[0], HTG.addHighlight(line, startX, endX));
                 }
                 else {
                     if (idx === 0) 
-                        self.redrawRow($row, addHighlight(line, startX, line.length));
+                        self.redrawRow($row, HTG.addHighlight(line, startX, line.length));
 
                     if (idx === $rows.length - 1) 
-                        self.redrawRow($row, addHighlight(line, 0, endX));
+                        self.redrawRow($row, HTG.addHighlight(line, 0, endX));
 
                     if (idx > 0 && idx < $rows.length - 1)
-                        self.redrawRow($row, addHighlight(line, 0, line.length));
+                        self.redrawRow($row, HTG.addHighlight(line, 0, line.length));
                 }
             });
         },
@@ -129,12 +129,6 @@ window.HTG = (function () {
             });
 
             self.$('.htg-keyboard').html(keys);
-        },
-
-        getSuggestions: function () {
-            return this.suggestions.sort(sortByOccurance).map(getSuggestion);
-            function sortByOccurance(a,b) { return a.occurance - b.occurance; }
-            function getSuggestion (obj) { return obj.suggestion; }
         },
 
         loadFromFile: function (event) {
@@ -156,7 +150,7 @@ window.HTG = (function () {
                 numberWidth,
                 text;
 
-            this.file = new HTGFile(fileString);
+            this.file = new HTG.File(fileString);
 
             numberWidth = this.file.lines.length.toString().length;
 
@@ -170,7 +164,7 @@ window.HTG = (function () {
                 lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
 
                 line = '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
-                        htmlConvert(line, 'html') + '</span>';
+                        HTG.htmlConvert(line, 'html') + '</span>';
 
                 return lineNumber +  line;
             }).join('\n');
@@ -203,7 +197,7 @@ window.HTG = (function () {
         },
 
         redrawRow: function ($row, text) {
-            text = text || htmlConvert(this.file.lines[$row.data('line-index')], 'html');
+            text = text || HTG.htmlConvert(this.file.lines[$row.data('line-index')], 'html');
             $row.html(text);
             hljs.highlightBlock($row[0]);
             $row.removeClass('hljs');
@@ -237,7 +231,7 @@ window.HTG = (function () {
                 adjustment;
 
             // create namespace
-            this.consts = consts = {};
+            HTG.consts = this.consts = consts = {};
 
             // calculate average letter width by averaging appended test letters
             this.$code.append('<span id="htg-test-letters">qwertyuiopasdfghjklzxcvbnm(){}[];</span>'),
@@ -247,13 +241,13 @@ window.HTG = (function () {
             $('#htg-test-letters').remove();
 
             // strip px and parse into floats
-            adjustment = stripPx(border)  + 
-                         stripPx(paddingLeft) + 
+            adjustment = HTG.stripPx(border)  + 
+                         HTG.stripPx(paddingLeft) + 
                          (numberWidth * this.consts.fontWidth);
 
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
-            this.consts.adjustedTop  = offset.top  + stripPx(border) + stripPx(paddingTop);
+            this.consts.adjustedTop  = offset.top  + HTG.stripPx(border) + HTG.stripPx(paddingTop);
             this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 29)
 
             // resize overlay
@@ -278,7 +272,7 @@ window.HTG = (function () {
             var self = this;
 
             // fullscreen
-            $('.htg-goFS').on('click', toggleFullScreen); // fullscreen listener
+            $('.htg-goFS').on('click', HTG.toggleFullScreen); // fullscreen listener
 
             // upload file
             $('.htg-load-file').on('change', this.loadFromFile.bind(this)); // load file listener
@@ -311,8 +305,8 @@ window.HTG = (function () {
             // this.$code.on('touchstart touchstart', function (startEvent) {
             this.$overlay.on('touchstart mousedown', function(startEvent){
                 var moved = false,
-                    col   = getTextColumn(startEvent),
-                    row   = getTextRow(startEvent),
+                    col   = HTG.getTextColumn(startEvent),
+                    row   = HTG.getTextRow(startEvent),
                     line  = self.file.lines[row],
                     chr   = line && line[col];
 
@@ -390,9 +384,9 @@ window.HTG = (function () {
         },
 
         tapSelect: function (event) {
-            var start        = getTextColumn(event),
+            var start        = HTG.getTextColumn(event),
                 end          = start + 1,
-                lineIndex    = getTextRow(event),
+                lineIndex    = HTG.getTextRow(event),
                 $row         = this.$('span[data-line-index="'+lineIndex+'"]'),
                 line         = this.file.lines[lineIndex],
                 re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
@@ -418,7 +412,7 @@ window.HTG = (function () {
             if (this.$rows && this.$rows[0])
                 this.redrawRow(this.$rows[0]);
 
-            text = addHighlight(line, start, end);
+            text = HTG.addHighlight(line, start, end);
             this.redrawRow($row, text);
             this.$rows      = [$('span[data-line-index = "' + lineIndex +'"]')];
             this.$selection = this.$('.htg-selection');
@@ -430,154 +424,8 @@ window.HTG = (function () {
                 start: start,
                 text: this.$selection.text(),
             };
-
-        }
-    });
-
-    var HTGFile = function (fileString) {
-        this.fileString = replaceAll(fileString, /\t/g, { '\t': '    ' }); // replace tabs
-        this.lines      = this.fileString.split(/\n|\r/);
-
-        // remove extraneous newline if it exists
-        if (this.lines.slice(-1)[0] === "") 
-            this.lines = this.lines.slice(0, -1);
-    };
-
-    extend(HTGFile.prototype, {
-        buildWordList: function (language) {
-            var self = this;
-
-            this.words = [];
-
-            _.each(this.fileString.match(/\w+/g), function (word) {
-                if (
-                    language.defs.keywords.indexOf(word) === -1 &&
-                    self.words.indexOf(word) === -1
-                ) {
-                    self.words.push(word);
-                }
-            });
-        },
-
-        getSuggestions: function (match, limit) {
-            var re = match ? new RegExp('^'+match+'.*', 'i') : /\w+/;
-                suggestions = _.filter(this.words, function (word) {
-                    return re.test(word);
-                });
-
-            return suggestions.slice(0, limit);
         }
     });
     
     return HTG;
-
-    // add highlight span to string based on indices
-    function addHighlight(line, start, end) {
-        var startSlice = htmlConvert(line.slice(0, start), 'html'),
-            selection  = htmlConvert(line.slice(start, end), 'html'),
-            endSlice   = htmlConvert(line.slice(end), 'html');
-
-        return startSlice + '<span class="htg-selection">' + selection + '</span>' + endSlice;
-    }
-
-    // shallow extend function
-    function extend (obj, props) {
-        for (var i in props) {
-            obj[i] = props[i];
-        }
-    }
-
-    // get text column
-    function getTextColumn(event) {
-        var $child  = $(event.currentTarget),
-            $parent = $child.parent(),
-            eventX  = event.pageX || event.originalEvent.touches[0].pageX,
-            left    = eventX - (consts.adjustedLeft - $parent.scrollLeft()),
-            col     = Math.floor(left/consts.fontWidth) - 1;
-
-        return col;
-    }
-
-    function getTextRow(event) {
-        var eventY    = event.pageY || event.originalEvent.touches[0].pageY,
-            rowHeight = consts.rowHeight,
-            rowNumber = Math.floor(($('pre').scrollTop() + eventY - consts.adjustedTop)/rowHeight),
-            $suggestions = $('.htg-suggestion');
-
-        if ($suggestions.length && $suggestions.offset().top < eventY)
-            rowNumber -= $suggestions.length;
-
-        return rowNumber;
-    }
-
-    // convert to and from html
-    function htmlConvert(string, dir) {
-        var replacements = {
-                '&'     : '&amp;',
-                '>'     : '&gt;',
-                '<'     : '&lt;',
-                '&amp;' : '&',
-                '&gt;'  : '>',
-                '&lt;'  : '<'
-            };
-
-        if (dir === 'html') {
-            string = replaceAll(string, /&|<|>/g, replacements);
-        }
-        else if (dir === 'text') {
-            string = replaceAll(string, /&lt;|&gt;/ig, replacements);
-            string = replaceAll(string, /&amp;/ig, replacements);
-        }
-        else {
-            console.error('Please provide a valid direction (text, html) for conversion');
-        }
-
-        return string;
-    }
-
-    //replace all instances with regex and object of replacements
-    function replaceAll(string, re, replacements) {
-        var replacement, 
-            match,
-            lastMatchLength = 0,
-            lastMatchIndex  = 0,
-            result = '';
-
-        while ((match = re.exec(string)) !== null) {
-            replacement = typeof(replacements) === 'function' ? replacements(match[0]) : replacements[match[0]];
-            result += string.slice(lastMatchIndex + lastMatchLength, match.index) + replacement; 
-            lastMatchLength = match[0].length;
-            lastMatchIndex  = match.index;
-        }
-
-        result += string.slice(lastMatchIndex + lastMatchLength);
-
-        return result;
-    }
-
-    // strip off px from css properties
-    function stripPx(prop) {
-         return parseFloat(prop.slice(0, prop.length -2));
-    }
-
-    // full screen fill
-    function toggleFullScreen() {
-        var doc = window.document;
-        var docEl = doc.documentElement;
-
-        var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-        var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-
-        if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-            requestFullScreen.call(docEl);
-        }
-        else {
-            cancelFullScreen.call(doc);
-        }
-    }
 })();
-
-window.addEventListener("load", function load(event){
-    window.removeEventListener("load", load, false); //remove listener, no longer needed
-    window.htg = new HTG($('#editor'));
-},false);
