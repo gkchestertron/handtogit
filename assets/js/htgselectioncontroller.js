@@ -61,13 +61,12 @@ $.extend(HTG.SelectionController.prototype, {
     handlers: {
         start: function (event) {
             this.reset();
-            this.selecting = true;
+            this.selecting  = true;
             this.startPoint = this.getTouchPoint(event);
             this.actionType = this.startPoint.col > -1 ? 'code' : 'line';
 
             if (this.actionType === 'code') {
-                // clear selection unless point is in existing selection
-                if (this.selection.rangesContain(this.startPoint)) {
+                if (this.selection.rangesContain(this.startPoint, this.block)) {
                     this.secondaryAction = true;
                 }
                 else {
@@ -76,7 +75,8 @@ $.extend(HTG.SelectionController.prototype, {
 
                 // set hold flag in 200ms
                 setTimeout(function () {
-                    if (!this.moved) this.hold = true;
+                    if (!this.moved) 
+                        this.hold = true;
                 }, 200);
             }
 
@@ -169,6 +169,8 @@ $.extend(HTG.SelectionController.prototype, {
                 endFound,
                 text;
 
+            if (!line) return;
+
             if (re.test(line[start])) {
                 while (!startFound || !endFound) {
                     if (start > 0 && re.test(line[start - 1]))
@@ -216,18 +218,22 @@ $.extend(HTG.SelectionController.prototype, {
             left: function () {
                 console.log('delete');
             },
+
             right: function () {
                 console.log('paste');
             },
+
             up: function () {
                 console.log('find prev');
             },
+
             down: function () {
                 console.log('find next');
             },
+
             tap: function () {
                 console.log('copy');
-            },
+            }
         },
 
         line: {}
@@ -238,7 +244,6 @@ $.extend(HTG.SelectionController.prototype, {
         this.htg.$overlay.on('touchmove mousemove', this.handlers.move.bind(this));
         this.htg.$overlay.on('touchend mouseup', this.handlers.end.bind(this));
     },
-
     
     updateCurrentRange: function () {
         var range = this.getCurrentRange();

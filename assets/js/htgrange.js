@@ -5,9 +5,12 @@ HTG.Range = function (startPoint, endPoint) {
 };
 
 $.extend(HTG.Range.prototype, {
-    contains: function (point) {
+    contains: function (point, block) {
         if (!this.linesContain(point))
             return false;
+
+        if (block)
+            return point.col >= this.startCol && point.col <= this.endCol;
 
         if (point.row === this.startRow && point.col < this.startCol)
             return false

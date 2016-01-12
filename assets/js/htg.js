@@ -26,30 +26,28 @@ window.HTG = window.HTG || (function () {
     $.extend(HTG.prototype, {
         buildTemplate: function ($element) {
             // setup objects
-            this.$element    = $element;
-            this.$wrapper    = $('<div class="htg-wrapper"></div>');
-            this.$pre        = $('<pre class="noselect htg-pre"></pre>');
-            this.$filename   = $('<div class="htg-filename">test-file.js</div>');
-            this.$numbers    = $('<div class="htg-line-numbers"></div>');
-            this.$code       = $('<code class="htg-code"></code>');
-            this.$overlay    = $('<div class="htg-overlay"></div>');
-            this.$controls   = $(
-                '<div class="htg-controls">' +
-                    '<div class="htg-keyboard"></div>' +
-                    '<button class="htg-undo btn btn-default">undo</button>' +
-                    '<button class="htg-redo btn btn-default">redo</button>' +
-                    '<button class="htg-goFS btn btn-default">fullscreen</button>' +
-                    '<div class="btn btn-default htg-btn-file form-group">' +
-                        '<input title="Choose File" type="file" class="htg-load-file" name="image-upload" data-toggle="tooltip" data-placement="right" /><i class="fa fa-file-image-o"></i> Choose File...' +
-                    '</div>' +
-                '</div>');
-            this.state.$code = this.$code;
+            this.$element     = $element;
+            this.$wrapper     = $('<div class="htg-wrapper"></div>');
+            this.$pre         = $('<pre class="htg-noselect htg-pre"></pre>');
+            this.$topBar      = $('<div class="htg-top-bar"></div>');
+            this.$topControls = $('<div class="htg-top-controls"></div>');
+            this.$numbers     = $('<div class="htg-line-numbers"></div>');
+            this.$code        = $('<code class="htg-code"></code>');
+            this.$overlay     = $('<div class="htg-overlay"></div>');
+            this.$controls    = $('<div class="htg-controls"></div>');
+            this.$keyboard    = $('<div class="htg-keyboard"></div>');
+            this.$mainCont    = $('<div class="htg-main-controls"></div>');
+            this.state.$code  = this.$code;
 
             // append the things
             this.$element.append(this.$wrapper);
-            this.$wrapper.append(this.$filename);
+            this.$wrapper.append(this.$topBar);
+            this.$topBar.append(this.$topControls);
             this.$wrapper.append(this.$pre);
             this.$wrapper.append(this.$controls);
+            this.$controls.append(this.$keyboard);
+            this.$controls.append(this.$mainCont);
+            this.$controls.append('<input title="Choose File" type="file" class="htg-load-file">');
             this.$pre.append(this.$numbers);
             this.$pre.append(this.$code);
             this.$pre.append(this.$overlay);
@@ -72,7 +70,7 @@ window.HTG = window.HTG || (function () {
                 file   = event.currentTarget.files[0];
 
             reader.onload = function (event) {
-                self.$filename.html(file.name);
+                // self.$topBar.html(file.name); // TODO need to show filename somewhere 
                 self.loadFromString(event.target.result);
             }
 
@@ -136,7 +134,7 @@ window.HTG = window.HTG || (function () {
                     lineNumber = ' ' + lineNumber;
                 }
 
-                return '<span class="line-number noselect">' + lineNumber + '</span> \n';
+                return '<span class="line-number htg-noselect">' + lineNumber + '</span> \n';
             }));
 
             hljs.highlightBlock(this.$numbers[0]);
@@ -160,6 +158,13 @@ window.HTG = window.HTG || (function () {
             this.$overlay.width($(_.max(this.$('.htg-editor-row'), function (row) { 
                 return $(row).width(); 
             })).width());
+        },
+
+        selectFile: function () {
+            var $file = this.$('.htg-load-file')
+
+            $file.click();
+            $file.one('change', this.loadFromFile.bind(this));
         },
 
         setConstants: function () {
@@ -211,11 +216,29 @@ window.HTG = window.HTG || (function () {
         setUIListeners: function () {
             var self = this;
 
-            // fullscreen
-            $('.htg-goFS').on('click', HTG.toggleFullScreen); // fullscreen listener
+            this.topControls = new HTG.Keyboard(this, {
+                $element : this.$topControls,
+                keys     : [ '<', '&#8634;', '-', '&#x2630;', '+', '&#8635;', '>', '/', 'esc'],
+                handler  : this.type
+            });
 
-            // upload file
-            $('.htg-load-file').on('change', this.loadFromFile.bind(this)); // load file listener
+            // main menu controls
+            this.mainControls = new HTG.Keyboard(this, {
+                $element: this.$mainCont, 
+                keys: {
+                    'fullscreen': HTG.toggleFullScreen,
+                    'load file...': this.selectFile
+                }
+            });
+
+            // main keyboard
+            this.keyboard = new HTG.Keyboard(this, {
+                $element: this.$keyboard, 
+                handler: this.type,
+                keys: [
+                    '()'
+                ]
+            });
 
             // scroll
             this.$pre.on('scroll', function(){
@@ -272,6 +295,10 @@ window.HTG = window.HTG || (function () {
             },
 
             stack: []
+        },
+
+        type: function (event) {
+            console.log($(event.currentTarget).text());
         }
     });
     

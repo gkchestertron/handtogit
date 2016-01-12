@@ -1,29 +1,13 @@
-.htg-btn-file {                          
-    position: relative;
-    overflow: hidden;
-}
-
-.htg-btn-file input[type=file] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    min-width: 100%;
-    min-height: 100%;
-    font-size: 50px;
-    text-align: right;
-    filter: alpha(opacity=0);
-    opacity: 0;
-    outline: none;
-    background: white;
-    cursor: inherit;
-    display: block;
+.htg-load-file {
+    visibility: hidden;
+    height: 0px;
 }
 
 .htg-code {
-    padding-top: 35px !important;
+    padding-top: 40px !important;
 }
 
-.htg-filename {
+.htg-top-bar {
     background-color: rgba(0, 0, 0, 0.7);
     color: green;
     font-size: 20px;
@@ -36,7 +20,7 @@
 
 .htg-controls {
     position: fixed;
-    bottom: 0px;
+    bottom: 7px;
 }
 
 .htg-pre {
@@ -53,7 +37,7 @@
     width: 100%;
 }
 
-.noselect {
+.htg-noselect {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -62,12 +46,28 @@
     user-select: none;
 }
 
+.htg-key {
+    border: 2px solid green;
+    margin: 1px;
+    padding: 2px 7px 4px 7px;
+}
+
+.htg-keyboard {
+    color: green !important;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: lighter;
+    margin-bottom: 10px;
+    z-index: 103;
+}
+
 .htg-line-numbers {
     float: left;
     padding-left: 0px !important;
     padding-right: 0px !important;
     padding-bottom: 0px !important;
-    padding-top: 35px !important;
+    padding-top: 40px !important;
 }
 
 .htg-overlay {
@@ -94,6 +94,10 @@
 
 .htg-selection {
     background-color: #333;
+}
+
+.htg-top-controls {
+    float: right;
 }
 
 .htg-wrapper {

@@ -47,7 +47,7 @@ $.extend(HTG.Selection.prototype, {
         return this.lines.indexOf(point.row) > -1;
     },
 
-    rangesContain: function (point) {
+    rangesContain: function (point, block) {
         var contains = false,
             containingRange;
 
@@ -55,7 +55,7 @@ $.extend(HTG.Selection.prototype, {
         if (!this.linesContain(point)) return false;
 
         _.each(this.ranges, function (range) {
-            if (contains = range.contains(point))
+            if (contains = range.contains(point, block))
                 containingRange = range;
         });
 
