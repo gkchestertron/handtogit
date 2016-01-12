@@ -8,7 +8,7 @@ HTG.addHighlight = function (line, start, end) {
         endSlice   = HTG.htmlConvert(line.slice(end), 'html');
 
     return startSlice + '<span class="htg-selection">' + selection + '</span>' + endSlice;
-}
+};
 
 // get text column
 HTG.getTextColumn = function (event) {
@@ -19,7 +19,7 @@ HTG.getTextColumn = function (event) {
     col     = Math.floor(left/HTG.consts.fontWidth) - 1;
 
     return col;
-}
+};
 
 HTG.getTextRow = function (event) {
     var eventY    = event.pageY || event.originalEvent.touches[0].pageY,
@@ -31,7 +31,7 @@ HTG.getTextRow = function (event) {
         rowNumber -= $suggestions.length;
 
     return rowNumber;
-}
+};
 
 // convert to and from html
 HTG.htmlConvert = function (string, dir) {
@@ -56,7 +56,7 @@ HTG.htmlConvert = function (string, dir) {
     }
 
     return string;
-}
+};
 
 //replace all instances with regex and object of replacements
 HTG.replaceAll = function (string, re, replacements) {
@@ -76,12 +76,12 @@ HTG.replaceAll = function (string, re, replacements) {
     result += string.slice(lastMatchIndex + lastMatchLength);
 
     return result;
-}
+};
 
 // strip off px from css properties
 HTG.stripPx = function (prop) {
     return parseFloat(prop.slice(0, prop.length -2));
-}
+};
 
 // full screen fill
 HTG.toggleFullScreen = function () {
@@ -97,4 +97,4 @@ HTG.toggleFullScreen = function () {
     else {
         cancelFullScreen.call(doc);
     }
-}
+};

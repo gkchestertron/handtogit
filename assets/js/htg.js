@@ -10,7 +10,6 @@ window.HTG = window.HTG || (function () {
             { occurance: 2, suggestion: 'suggestions' },
         ],
         this.setUIListeners();
-        this.setSelectListeners();
         this.setStateListeners();
         this.loadFromString(
         "// PhantomJS doesn't support bind yet                                        \n" +
@@ -21,6 +20,7 @@ window.HTG = window.HTG || (function () {
         "    };\n" +
         "};\n");
         this.setLanguage('javascript');
+        this.selectionController = new HTG.SelectionController(this);
     };
     
     $.extend(HTG.prototype, {
@@ -61,63 +61,6 @@ window.HTG = window.HTG || (function () {
                     self.redrawRow($row)
                 });
             }
-        },
-
-        dragSelect: function (startEvent, currentEvent) {
-            var self       = this,
-                startIndex = HTG.getTextRow(startEvent),
-                endIndex   = HTG.getTextRow(currentEvent) - 1, // lets you get your finger out of the way
-                startX     = HTG.getTextColumn(startEvent),
-                endX       = HTG.getTextColumn(currentEvent) + 1, // need length of at least one
-                $rows      = [],
-                $row,
-                temp;
-
-            if (endIndex < 0) return;
-
-            // swap col indicies if necessary
-            if ((startIndex === endIndex && startX >= endX) || startIndex > endIndex) {
-                temp   = startX;
-                startX = endX - 1;
-                endX   = temp + 1;
-            }
-
-            // swap row indices if necessary
-            if (startIndex > endIndex) {
-                temp       = startIndex;
-                startIndex = endIndex;
-                endIndex   = temp;
-            }
-
-            // get rows
-            for (var i = startIndex; i <= endIndex; i++) {
-                $row = this.$('[data-line-index="'+i+'"]');
-                if ($row.length) $rows.push($row);
-            }
-
-            // reset rows reference
-            this.$rows = $rows;
-
-            // add selection highlights to rows
-            _.each($rows, function ($row, idx) {
-                var lineIndex = $row.data('line-index'),
-                    line      = self.file.lines[lineIndex],
-                    text; 
-
-                if ($rows.length === 1) {
-                    self.redrawRow($rows[0], HTG.addHighlight(line, startX, endX));
-                }
-                else {
-                    if (idx === 0) 
-                        self.redrawRow($row, HTG.addHighlight(line, startX, line.length));
-
-                    if (idx === $rows.length - 1) 
-                        self.redrawRow($row, HTG.addHighlight(line, 0, endX));
-
-                    if (idx > 0 && idx < $rows.length - 1)
-                        self.redrawRow($row, HTG.addHighlight(line, 0, line.length));
-                }
-            });
         },
 
         drawKeyboard: function () {
@@ -263,7 +206,7 @@ window.HTG = window.HTG || (function () {
             head.appendChild(script);
 
             script.onload = function () {
-                self.language = new self.LanguageBase(HTG.LDEFS[language]);
+                self.language = new self.Language(HTG.LDEFS[language]);
                 self.file.buildWordList(self.language);
             };
         },
@@ -296,55 +239,6 @@ window.HTG = window.HTG || (function () {
                 if (self.state.redo()) {
                     self.splitPre();
                 }
-            });
-        },
-
-        setSelectListeners: function () {
-            var self = this;
-
-            // this.$code.on('touchstart touchstart', function (startEvent) {
-            this.$overlay.on('touchstart mousedown', function(startEvent){
-                var moved = false,
-                    col   = HTG.getTextColumn(startEvent),
-                    row   = HTG.getTextRow(startEvent),
-                    line  = self.file.lines[row],
-                    chr   = line && line[col];
-
-                if (!chr) return;
-
-                self.$overlay.on('touchmove mousemove', touchmove);
-
-                self.$overlay.on('touchend touchcancel touchleave mouseup', touchend);
-
-                function touchmove(event){
-                    moved = true;
-                    event.preventDefault();
-                    self.redrawSelectedRows();
-                    self.dragSelect(startEvent, event);
-                }
-
-                function touchend(event){
-                    if (!moved) {
-                        self.redrawSelectedRows();
-                        self.tapSelect(startEvent);
-                        self.removeSuggestions();
-                        if (/\w+/.test(self.selection)) {
-                            self.makeSuggestions();
-                        }
-                    }
-                    else {
-                        self.removeSuggestions();
-                    }
-
-                    // self.$overlay.off('touchmove touchmove');
-                    self.$overlay.off('touchmove mousemove', touchmove);
-                    self.$overlay.off('touchend touchcancel touchleave mouseup', touchend);
-                }
-
-            });
-
-            this.$code.on('click', '.htg-suggestion', function (event) {
-                self.replaceSelection(event.currentTarget.innerText);
             });
         },
 
@@ -381,49 +275,6 @@ window.HTG = window.HTG || (function () {
             },
 
             stack: []
-        },
-
-        tapSelect: function (event) {
-            var start        = HTG.getTextColumn(event),
-                end          = start + 1,
-                lineIndex    = HTG.getTextRow(event),
-                $row         = this.$('span[data-line-index="'+lineIndex+'"]'),
-                line         = this.file.lines[lineIndex],
-                re           = /\w|&|\||<|>|#|\$|=|\+|\-|\//,
-                startFound,
-                endFound,
-                text;
-
-
-            if (re.test(line[start])) {
-                while (!startFound || !endFound) {
-                    if (start > 0 && re.test(line[start - 1]))
-                        start--;
-                    else
-                        startFound = true;
-
-                    if (end < line.length && re.test(line[end]))
-                        end++;
-                    else
-                        endFound = true;
-                }
-            }
-
-            if (this.$rows && this.$rows[0])
-                this.redrawRow(this.$rows[0]);
-
-            text = HTG.addHighlight(line, start, end);
-            this.redrawRow($row, text);
-            this.$rows      = [$('span[data-line-index = "' + lineIndex +'"]')];
-            this.$selection = this.$('.htg-selection');
-            this.selection  = { 
-                end: end,
-                line: line,
-                lineIndex: lineIndex,
-                $row: $row,
-                start: start,
-                text: this.$selection.text(),
-            };
         }
     });
     

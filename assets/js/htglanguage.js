@@ -1,11 +1,11 @@
 HTG.LDEFS = {};
 
-HTG.prototype.LanguageBase = (function () {
-    var LanguageBase = function (options) {
+HTG.prototype.Language = (function () {
+    var Language = function (options) {
         this.defs = options;
     };
 
-    extend(LanguageBase.prototype, {
+    $.extend(Language.prototype, {
         getSuggestions: function (match, limit) {
             var re = match ? new RegExp('^'+match+'.*', 'i') : /\w+/;
                 suggestions = _.filter(this.defs.keywords, function (word) {
@@ -16,12 +16,5 @@ HTG.prototype.LanguageBase = (function () {
         }
     });
 
-    return LanguageBase;
-
-    // shallow extend function
-    function extend (obj, props) {
-        for (var i in props) {
-            obj[i] = props[i];
-        }
-    }
+    return Language;
 })();
