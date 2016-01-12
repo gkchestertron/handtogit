@@ -207,10 +207,10 @@ $.extend(HTG.SelectionController.prototype, {
         // reset flags
         this.moved = false;
         this.hold  = false;
-        delete this.actionType;
+        this.actionType = undefined;
         delete this.startPoint;
         delete this.endPoint;
-        delete this.secondaryAction;
+        this.secondaryAction = false;
     },
 
     secondaryActions: {
