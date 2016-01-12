@@ -30,6 +30,7 @@ window.HTG = window.HTG || (function () {
             this.$wrapper    = $('<div class="htg-wrapper"></div>');
             this.$pre        = $('<pre class="noselect htg-pre"></pre>');
             this.$filename   = $('<div class="htg-filename">test-file.js</div>');
+            this.$numbers    = $('<div class="htg-line-numbers"></div>');
             this.$code       = $('<code class="htg-code"></code>');
             this.$overlay    = $('<div class="htg-overlay"></div>');
             this.$controls   = $(
@@ -49,18 +50,9 @@ window.HTG = window.HTG || (function () {
             this.$wrapper.append(this.$filename);
             this.$wrapper.append(this.$pre);
             this.$wrapper.append(this.$controls);
+            this.$pre.append(this.$numbers);
             this.$pre.append(this.$code);
             this.$pre.append(this.$overlay);
-        },
-
-        redrawSelectedRows: function () {
-            var self = this;
-
-            if (this.$rows) {
-                _.each(this.$rows, function ($row) {
-                    self.redrawRow($row)
-                });
-            }
         },
 
         drawKeyboard: function () {
@@ -90,33 +82,21 @@ window.HTG = window.HTG || (function () {
         loadFromString: function (fileString) {
             var self = this,
                 i    = 0,
-                numberWidth,
                 text;
 
             this.file = new HTG.File(fileString);
 
-            numberWidth = this.file.lines.length.toString().length;
-
             text = _.map(this.file.lines, function (line, idx) {
-                var lineNumber = (idx + 1).toString();
-
-                while (lineNumber.length < numberWidth) {
-                    lineNumber = ' ' + lineNumber;
-                }
-
-                lineNumber = '<span class="line-number noselect">' + lineNumber + '</span> ';
-
-                line = '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
+                return '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
                         HTG.htmlConvert(line, 'html') + '</span>';
-
-                return lineNumber +  line;
             }).join('\n');
 
             this.$code.html(text);
             while (i++ < 30) this.$code.append('\n');
+            this.renumber();
 
             hljs.highlightBlock(this.$code[0]);
-            this.setConstants(numberWidth);
+            this.setConstants();
             if (this.language)
                 this.file.buildWordList(this.language);
             // this.state.save();
@@ -146,6 +126,22 @@ window.HTG = window.HTG || (function () {
             $row.removeClass('hljs');
         },
 
+        renumber: function () {
+            var numberWidth = this.file.lines.length.toString().length;
+
+            this.$numbers.html(_.map(_.range(this.file.lines.length), function (num) {
+                var lineNumber = (num + 1).toString();
+
+                while (lineNumber.length < numberWidth) {
+                    lineNumber = ' ' + lineNumber;
+                }
+
+                return '<span class="line-number noselect">' + lineNumber + '</span> \n';
+            }));
+
+            hljs.highlightBlock(this.$numbers[0]);
+        },
+
         replaceSelection(text) {
             var line = this.selection.line,
                 startSlice = line.slice(0, this.selection.start),
@@ -166,11 +162,12 @@ window.HTG = window.HTG || (function () {
             })).width());
         },
 
-        setConstants: function (numberWidth) {
+        setConstants: function () {
             var border      = this.$code.css('border-width'),
                 paddingTop  = this.$code.css('padding-top'),
                 paddingLeft = this.$code.css('padding-left'),
                 offset      = this.$code.offset(),
+                numberWidth = this.file.lines.length.toString().length - 1,
                 adjustment;
 
             // create namespace

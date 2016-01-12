@@ -22,7 +22,7 @@ $.extend(HTG.Range.prototype, {
         return this.lines.indexOf(point.row) > -1;
     },
 
-    update: function (startPoint, endPoint) {
+    update: function (startPoint, endPoint, block) {
         var startCol = startPoint.col,
             startRow = startPoint.row,
             endCol   = endPoint.col,
@@ -30,7 +30,7 @@ $.extend(HTG.Range.prototype, {
             temp;
 
         // swap start and end cols if necessary
-        if ((startRow === endRow && startCol > endCol) || startRow > endRow) {
+        if (((startRow === endRow || block) && startCol > endCol) || (startRow > endRow)) {
             temp     = startCol;
             startCol = endCol;
             endCol   = temp;
@@ -48,7 +48,7 @@ $.extend(HTG.Range.prototype, {
         this.endCol   = endCol;
         this.endRow   = endRow;
         this.lines    = _.range(startRow, endRow + 1);
-        this.$rows = _.map(this.lines, function (line) {
+        this.$rows    = _.map(this.lines, function (line) {
             return self.htg.$('[data-line-index="'+line+'"]');
         });
     }

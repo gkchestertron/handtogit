@@ -62,6 +62,14 @@
     user-select: none;
 }
 
+.htg-line-numbers {
+    float: left;
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+    padding-bottom: 0px !important;
+    padding-top: 35px !important;
+}
+
 .htg-overlay {
     height: 100%;
     position: absolute;
