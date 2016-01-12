@@ -13,6 +13,12 @@ $.extend(HTG.SelectionController.prototype, {
         this._currentRange = undefined;
     },
 
+    escape: function () {
+        this.redrawSelectedRows();
+        this.selection.clear();
+        this.reset();
+    },
+
     getCurrentRange: function (range) {
         this._currentRange = range || this._currentRange || this.selection.addRange(this.startPoint, this.endPoint);
         return this._currentRange;
@@ -243,6 +249,38 @@ $.extend(HTG.SelectionController.prototype, {
         this.htg.$overlay.on('touchstart mousedown', this.handlers.start.bind(this));
         this.htg.$overlay.on('touchmove mousemove', this.handlers.move.bind(this));
         this.htg.$overlay.on('touchend mouseup', this.handlers.end.bind(this));
+
+        this.topControls = new HTG.Keyboard(this, this.htg.$topControls, {
+            type: [ '<', '&#8634;'], 
+            toggleRemove: '-', 
+            toggleBlock: '&#x2630;',
+            toggleAdd: '+',
+            type2: ['&#8635;', '>', '/'], 
+            escape: 'esc'
+        });
+    },
+
+    toggleAdd: function (event) {
+        this.add = !this.add;
+        $(event.currentTarget).toggleClass('htg-key-active');
+    },
+
+    toggleBlock: function (event) {
+        this.block = !this.block;
+        $(event.currentTarget).toggleClass('htg-key-active');
+    },
+
+    toggleRemove: function (event) {
+        this.remove = !this.remove;
+        $(event.currentTarget).toggleClass('htg-key-active');
+    },
+
+    type: function (event) {
+        console.log($(event.currentTarget).text());
+    },
+
+    type2: function (event) {
+        console.log($(event.currentTarget).text());
     },
     
     updateCurrentRange: function () {

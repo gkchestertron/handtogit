@@ -53,6 +53,11 @@
     padding: 2px 7px 4px 7px;
 }
 
+.htg-key-active {
+    color: black;
+    background-color: green;
+}
+
 .htg-keyboard {
     color: green !important;
     cursor: pointer;

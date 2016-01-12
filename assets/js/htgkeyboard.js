@@ -1,15 +1,12 @@
 HTG = window.HTG || {};
 
-HTG.Keyboard = function (context, options) {
+HTG.Keyboard = function (context, $element, keyHandlers) {
     this.context  = context;
-    this.handler  = options.handler;
-    this.$element = options.$element;
+    this.$element = $element;
 
     this.$element.addClass('htg-keyboard');
     this.$element.addClass('htg-noselect');
-    this.buildKeys(options.keys);
-    if (options.otherHandlers) 
-        this.setHandlers(options.otherHandlers);
+    this.buildKeys(keyHandlers);
 };
 
 $.extend(HTG.Keyboard.prototype, {
@@ -17,17 +14,19 @@ $.extend(HTG.Keyboard.prototype, {
         var self = this,
             idx  = 0;
 
-        _.each(keyHandlers, function (handler, key) {
-            var listener = 'click span[data-key-idx="'+idx+'"]';
-
-            if (typeof(handler) === 'string') {
-                key     = handler;
-                handler = self.handler;
+        _.each(keyHandlers, function (keys, handler) {
+            if (typeof(keys) === 'string') {
+                keys = [keys];
             }
 
-            self.$element.append('<span class="htg-key" data-key-idx="'+idx+'">'+key+'</span>');
-            self.setHandler(listener, handler.bind(self.context));
-            idx++;
+            _.each(keys, function (key) {
+                var listener = 'click span[data-key-idx="'+idx+'"]';
+
+                self.$element.append('<span class="htg-key" data-key-idx="'+idx+'">'+key+'</span>');
+                console.log(handler)
+                self.setHandler(listener, self.context[handler].bind(self.context));
+                idx++;
+            });
         });
     },
 

@@ -216,26 +216,15 @@ window.HTG = window.HTG || (function () {
         setUIListeners: function () {
             var self = this;
 
-            this.topControls = new HTG.Keyboard(this, {
-                $element : this.$topControls,
-                keys     : [ '<', '&#8634;', '-', '&#x2630;', '+', '&#8635;', '>', '/', 'esc'],
-                handler  : this.type
-            });
-
             // main menu controls
-            this.mainControls = new HTG.Keyboard(this, {
-                $element: this.$mainCont, 
-                keys: {
-                    'fullscreen': HTG.toggleFullScreen,
-                    'load file...': this.selectFile
-                }
+            this.mainControls = new HTG.Keyboard(this, this.$mainCont, {
+                toggleFullScreen: 'fullscreen',
+                selectFile: 'load file...'
             });
 
             // main keyboard
-            this.keyboard = new HTG.Keyboard(this, {
-                $element: this.$keyboard, 
-                handler: this.type,
-                keys: [
+            this.keyboard = new HTG.Keyboard(this, this.$keyboard, {
+                type: [
                     '()'
                 ]
             });
@@ -295,6 +284,10 @@ window.HTG = window.HTG || (function () {
             },
 
             stack: []
+        },
+
+        toggleFullScreen: function () {
+            HTG.toggleFullScreen()
         },
 
         type: function (event) {
