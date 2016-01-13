@@ -21,6 +21,14 @@ HTG.addHighlight = function (line, highlights) {
     return result;
 };
 
+// benchmark any function in real time
+HTG.benchmark = function (msg, context, func, args) {
+    var startTime = window.performance.now();
+    var result = func.apply(context, args);
+    console.log(msg, window.performance.now() - startTime);
+    return result;
+}
+
 // get text column
 HTG.getTextColumn = function (event) {
     var $child  = $(event.currentTarget),

@@ -14,8 +14,7 @@ $.extend(HTG.SelectionController.prototype, {
     },
 
     escape: function () {
-        this.redrawSelectedRows();
-        this.selection.clear();
+        this.clearSelection();
         this.reset();
     },
 
@@ -71,11 +70,11 @@ $.extend(HTG.SelectionController.prototype, {
             this.startPoint = this.getTouchPoint(event);
             this.actionType = this.startPoint.col > -1 ? 'code' : 'line';
 
-            if (this.actionType === 'code') {
+            if (this.actionType === 'code' && !this.add && !this.remove) {
                 if (this.selection.rangesContain(this.startPoint)) {
                     this.secondaryAction = true;
                 }
-                else {
+                else if (!this.add && !this.remove) {
                     this.clearSelection();
                 }
 
@@ -132,7 +131,7 @@ $.extend(HTG.SelectionController.prototype, {
     highlightRanges: function () {
         var self = this;
 
-        _.each(this.selection.getLines(), function (ranges, lineNumber) {
+        _.each(HTG.benchmark('selection get lines', this.selection, this.selection.getLines), function (ranges, lineNumber) {
             var line = self.htg.file.lines[lineNumber],
                 $row = self.htg.$('[data-line-index="'+lineNumber+'"]');
 
@@ -148,7 +147,7 @@ $.extend(HTG.SelectionController.prototype, {
                 return;
             this.redrawSelectedRows();
             this.updateCurrentRange();
-            this.highlightRanges();
+            HTG.benchmark('hilghlight ranges', this, this.highlightRanges);
         },
 
         tapSelect: function () {
@@ -204,6 +203,7 @@ $.extend(HTG.SelectionController.prototype, {
         delete this.startPoint;
         delete this.endPoint;
         this.secondaryAction = false;
+        this._currentRange = undefined;
     },
 
     secondaryActions: {
@@ -271,6 +271,11 @@ $.extend(HTG.SelectionController.prototype, {
     },
     
     updateCurrentRange: function () {
-        this.selection.updateRange(this.startPoint, this.endPoint, this.block, this.remove);
+        if (!this._currentRange) {
+            this.selection.addRange(this.startPoint, this.endPoint, this.block, this.remove);
+            this._currentRange = true;
+        }
+        else
+            this.selection.updateRange(this.startPoint, this.endPoint, this.block, this.remove);
     }
 });

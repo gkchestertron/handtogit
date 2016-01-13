@@ -7,6 +7,7 @@ HTG.Selection = function (htg) {
 
 $.extend(HTG.Selection.prototype, {
     addRange: function (startPoint, endPoint, block, inverse) {
+        console.log('adding range');
         this.range = new HTG.Range({
             startPoint : startPoint,
             endPoint   : endPoint,
@@ -28,8 +29,6 @@ $.extend(HTG.Selection.prototype, {
 
     combineLines: function (lines, inverse) {
         var self = this;
-
-        console.log(lines);
 
         _.each(lines, function (newLine, idx) {
             var fileLine = self.htg.file.lines[idx],
@@ -73,22 +72,11 @@ $.extend(HTG.Selection.prototype, {
     },
 
     linesContain: function (point) {
-        return Object.keys(this.lines).indexOf(point.row) > -1;
+        return Object.keys(this.lines).indexOf(point.row.toString()) > -1;
     },
 
-    rangesContain: function (point, block) {
-        var contains = false,
-            containingRange;
-
-        // quick fail if not even in lines
-        if (!this.linesContain(point)) return false;
-
-        _.each(this.ranges, function (range) {
-            if (contains = range.contains(point))
-                containingRange = range;
-        });
-
-        return containingRange || contains;
+    rangesContain: function (point) {
+        return this.linesContain(point) && this.lines[point.row].indexOf(point.col) > -1;
     },
 
     sortRanges: function () {
@@ -100,8 +88,10 @@ $.extend(HTG.Selection.prototype, {
     },
 
     updateRange(startPoint, endPoint, block, inverse) {
+        console.log('updating');
         this.range = this.range || this.addRange(startPoint, endPoint, block, inverse);
         this.range.update(startPoint, endPoint);
-        this.combineLines(this.range.getLines(), inverse);
+        var lines = HTG.benchmark('getlines', this.range, this.range.getLines);
+        HTG.benchmark('combineLines', this, this.combineLines, [lines, inverse]);
     }
 });
