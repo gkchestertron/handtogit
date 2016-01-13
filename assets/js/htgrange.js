@@ -1,16 +1,18 @@
 HTG = window.HTG || {};
 
-HTG.Range = function (startPoint, endPoint) {
-    this.update(startPoint, endPoint);
+HTG.Range = function (options) {
+    this.block   = options.block;
+    this.inverse = options.inverse;
+    this.update(options.startPoint, options.endPoint);
 };
 
 $.extend(HTG.Range.prototype, {
-    contains: function (point, block) {
+    contains: function (point) {
         if (!this.linesContain(point))
             return false;
 
-        if (block)
-            return point.col >= this.startCol && point.col <= this.endCol;
+        if (this.block)
+            return (point.col >= this.startCol && point.col <= this.endCol);
 
         if (point.row === this.startRow && point.col < this.startCol)
             return false
@@ -21,19 +23,47 @@ $.extend(HTG.Range.prototype, {
         return true;
     },
 
-    linesContain: function(point) {
-        return this.lines.indexOf(point.row) > -1;
+    getLines: function () {
+        var self  = this,
+            lines = {},
+            count = this.endRow - this.startRow + 1,
+            range = _.range(this.startRow, this.endRow + 1);;
+
+        _.each(range, function (lineNumber, idx) {
+            var thing = {};
+
+            if (self.block || count === 1) {
+                thing.startCol = self.startCol;
+                thing.endCol   = self.endCol;
+            }
+            else {
+                if (idx === 0)
+                    thing.startCol = self.startCol;
+
+                if (idx === count - 1)
+                    thing.endCol = self.endCol;
+            }
+
+            lines[lineNumber] = thing;
+        });
+
+        return lines;
     },
 
-    update: function (startPoint, endPoint, block) {
-        var startCol = startPoint.col,
+    linesContain: function(point) {
+        return (point.row >= this.startRow && point.row <= this.endRow);
+    },
+
+    update: function (startPoint, endPoint) {
+        var self     = this,
+            startCol = startPoint.col,
             startRow = startPoint.row,
             endCol   = endPoint.col,
             endRow   = endPoint.row,
             temp;
 
         // swap start and end cols if necessary
-        if (((startRow === endRow || block) && startCol > endCol) || (startRow > endRow)) {
+        if (((startRow === endRow || this.block) && startCol > endCol) || (startRow > endRow)) {
             temp     = startCol;
             startCol = endCol;
             endCol   = temp;
@@ -50,9 +80,5 @@ $.extend(HTG.Range.prototype, {
         this.startRow = startRow;
         this.endCol   = endCol;
         this.endRow   = endRow;
-        this.lines    = _.range(startRow, endRow + 1);
-        this.$rows    = _.map(this.lines, function (line) {
-            return self.htg.$('[data-line-index="'+line+'"]');
-        });
     }
 });

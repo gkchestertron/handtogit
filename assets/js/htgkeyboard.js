@@ -23,7 +23,6 @@ $.extend(HTG.Keyboard.prototype, {
                 var listener = 'click span[data-key-idx="'+idx+'"]';
 
                 self.$element.append('<span class="htg-key" data-key-idx="'+idx+'">'+key+'</span>');
-                console.log(handler)
                 self.setHandler(listener, self.context[handler].bind(self.context));
                 idx++;
             });

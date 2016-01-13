@@ -20,7 +20,7 @@ $.extend(HTG.SelectionController.prototype, {
     },
 
     getCurrentRange: function (range) {
-        this._currentRange = range || this._currentRange || this.selection.addRange(this.startPoint, this.endPoint);
+        this._currentRange = range || this._currentRange || this.selection.addRange(this.startPoint, this.endPoint, this.block, this.remove);
         return this._currentRange;
     },
 
@@ -72,7 +72,7 @@ $.extend(HTG.SelectionController.prototype, {
             this.actionType = this.startPoint.col > -1 ? 'code' : 'line';
 
             if (this.actionType === 'code') {
-                if (this.selection.rangesContain(this.startPoint, this.block)) {
+                if (this.selection.rangesContain(this.startPoint)) {
                     this.secondaryAction = true;
                 }
                 else {
@@ -132,26 +132,13 @@ $.extend(HTG.SelectionController.prototype, {
     highlightRanges: function () {
         var self = this;
 
-        _.each(this.selection.ranges, function (range) {
-            _.each(range.lines, function (line, idx) {
-                var $row = range.$rows[idx];
+        _.each(this.selection.getLines(), function (ranges, lineNumber) {
+            var line = self.htg.file.lines[lineNumber],
+                $row = self.htg.$('[data-line-index="'+lineNumber+'"]');
 
-                line = self.htg.file.lines[line];
+            self.selection.$rows.push($row);
 
-                if (range.$rows.length === 1 || self.block) {
-                    self.htg.redrawRow(range.$rows[idx], HTG.addHighlight(line, range.startCol, range.endCol + 1));
-                }
-                else {
-                    if (idx === 0) 
-                        self.htg.redrawRow($row, HTG.addHighlight(line, range.startCol, line.length));
-
-                    if (idx === range.$rows.length - 1) 
-                        self.htg.redrawRow($row, HTG.addHighlight(line, 0, range.endCol + 1));
-
-                    if (idx > 0 && idx < range.$rows.length - 1)
-                        self.htg.redrawRow($row, HTG.addHighlight(line, 0, line.length));
-                }
-            });
+            self.htg.redrawRow($row, HTG.addHighlight(line, ranges));
         });
     },
 
@@ -284,9 +271,6 @@ $.extend(HTG.SelectionController.prototype, {
     },
     
     updateCurrentRange: function () {
-        var range = this.getCurrentRange();
-
-        range.update(this.startPoint, this.endPoint, this.block);
-        this.selection.addLines();
+        this.selection.updateRange(this.startPoint, this.endPoint, this.block, this.remove);
     }
 });

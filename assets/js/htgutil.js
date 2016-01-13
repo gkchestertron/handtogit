@@ -2,12 +2,23 @@
 window.HTG = window.HTG || {};
 
 // add highlight span to string based on indices
-HTG.addHighlight = function (line, start, end) {
-    var startSlice = HTG.htmlConvert(line.slice(0, start), 'html'),
-        selection  = HTG.htmlConvert(line.slice(start, end), 'html'),
-        endSlice   = HTG.htmlConvert(line.slice(end), 'html');
+HTG.addHighlight = function (line, highlights) {
+    var result = '',
+        startIndex = 0;
 
-    return startSlice + '<span class="htg-selection">' + selection + '</span>' + endSlice;
+    _.each(highlights, function (highlight) {
+        var start = highlight.startCol || 0,
+            end   = highlight.endCol ? highlight.endCol + 1 : line.length,
+            startSlice = HTG.htmlConvert(line.slice(startIndex, start), 'html'),
+            selection  = HTG.htmlConvert(line.slice(start, end), 'html');
+
+        result += (startSlice + '<span class="htg-selection">' + selection + '</span>');
+        startIndex = end;
+    });
+
+    result += HTG.htmlConvert(line.slice(startIndex), 'html');
+
+    return result;
 };
 
 // get text column
