@@ -243,9 +243,8 @@ $.extend(HTG.SelectionController.prototype, {
 
     toggleAdd: function (event) {
         this.add = !this.add;
-        $(event.currentTarget).toggleClass('htg-key-active');
         this.remove = false;
-        this.htg.$('[data-handler="toggleRemove"]').removeClass('htg-key-active');
+        $(event.currentTarget).toggleClass('htg-key-active');
     },
 
     toggleBlock: function (event) {
@@ -255,9 +254,8 @@ $.extend(HTG.SelectionController.prototype, {
 
     toggleRemove: function (event) {
         this.remove = !this.remove;
-        $(event.currentTarget).toggleClass('htg-key-active');
         this.add = false;
-        this.htg.$('[data-handler="toggleAdd"]').removeClass('htg-key-active');
+        $(event.currentTarget).toggleClass('htg-key-active');
     },
 
     type: function (event) {

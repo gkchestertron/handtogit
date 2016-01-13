@@ -7,7 +7,6 @@ HTG.Selection = function (htg) {
 
 $.extend(HTG.Selection.prototype, {
     addRange: function (startPoint, endPoint, block, inverse) {
-        console.log('adding range');
         this.range = new HTG.Range({
             startPoint : startPoint,
             endPoint   : endPoint,
@@ -15,21 +14,24 @@ $.extend(HTG.Selection.prototype, {
             inverse    : inverse
         });
 
+        this.prevLines = this.lines;
+
         this.combineLines(this.range.getLines(), inverse);
 
         // TODO add support for extending/spliting/truncating ranges
-        return this.range;
     },
 
     clear: function () {
-        this.range  = undefined;
-        this.lines  = {};
-        this.$rows  = [];
+        this.range     = undefined;
+        this.lines     = {};
+        this.prevLines = {};
+        this.$rows     = [];
     },
 
     combineLines: function (lines, inverse) {
         var self = this;
 
+        this.lines = $.extend(true, {}, this.prevLines);
         _.each(lines, function (newLine, idx) {
             var fileLine = self.htg.file.lines[idx],
                 prevLine = self.lines[idx],
@@ -79,19 +81,10 @@ $.extend(HTG.Selection.prototype, {
         return this.linesContain(point) && this.lines[point.row].indexOf(point.col) > -1;
     },
 
-    sortRanges: function () {
-        this.ranges.sort(function (a, b) { 
-            if (a.startRow === b.startRow) 
-                return a.startCol - b.startCol;
-            return a.startRow - b.startRow;
-        });
-    },
-
     updateRange(startPoint, endPoint, block, inverse) {
-        console.log('updating');
         this.range = this.range || this.addRange(startPoint, endPoint, block, inverse);
         this.range.update(startPoint, endPoint);
-        var lines = HTG.benchmark('getlines', this.range, this.range.getLines);
-        HTG.benchmark('combineLines', this, this.combineLines, [lines, inverse]);
+        var lines = this.range.getLines();
+        this.combineLines(lines, inverse);
     }
 });
