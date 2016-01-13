@@ -157,7 +157,7 @@ $.extend(HTG.SelectionController.prototype, {
 
             if (!line) return;
 
-            if (re.test(line[start])) {
+            if (!this.block && re.test(line[start])) {
                 while (!startFound || !endFound) {
                     if (start > 0 && re.test(line[start - 1]))
                         start--;
