@@ -22,10 +22,11 @@ $.extend(HTG.Selection.prototype, {
     },
 
     clear: function () {
-        this.range     = undefined;
-        this.lines     = {};
-        this.prevLines = {};
-        this.$rows     = [];
+        this.range        = undefined;
+        this.lines        = {};
+        this.$lineNumbers = []
+        this.prevLines    = {};
+        this.$rows        = [];
     },
 
     combineLines: function (lines, inverse) {

@@ -134,7 +134,7 @@ window.HTG = window.HTG || (function () {
                     lineNumber = ' ' + lineNumber;
                 }
 
-                return '<span class="line-number htg-noselect">' + lineNumber + '</span> \n';
+                return '<span class="line-number htg-noselect" data-line-number-index="'+num+'"> '+lineNumber+'</span> \n';
             }));
 
             hljs.highlightBlock(this.$numbers[0]);
@@ -172,7 +172,7 @@ window.HTG = window.HTG || (function () {
                 paddingTop  = this.$code.css('padding-top'),
                 paddingLeft = this.$code.css('padding-left'),
                 offset      = this.$code.offset(),
-                numberWidth = this.file.lines.length.toString().length - 1,
+                numberWidth = this.file.lines.length.toString().length,
                 adjustment;
 
             // create namespace

@@ -34,8 +34,8 @@ HTG.getTextColumn = function (event) {
     var $child  = $(event.currentTarget),
         $parent = $child.parent(),
         eventX  = event.pageX || event.originalEvent.pageX || 
-            (event.originalEvent.touches[0] && event.originalEvent.touches[0].pageX) ||
-            (event.originalEvent.changedTouches[0] && event.originalEvent.changedTouches[0].pageX),
+            (event.originalEvent.touches && event.originalEvent.touches[0] && event.originalEvent.touches[0].pageX) ||
+            (event.originalEvent.changedTouches && event.originalEvent.changedTouches[0] && event.originalEvent.changedTouches[0].pageX),
         left    = eventX - (HTG.consts.adjustedLeft - $parent.scrollLeft()),
         col     = Math.floor(left/HTG.consts.fontWidth) - 1;
 

@@ -18,7 +18,7 @@ $.extend(HTG.SelectionController.prototype, {
         this.reset();
     },
 
-    getSecondaryDirection: function () {
+    getTouchDirection: function () {
         var x = this.endPoint.col - this.startPoint.col,
             y = this.endPoint.row - this.startPoint.row,
             dirs = {
@@ -41,6 +41,8 @@ $.extend(HTG.SelectionController.prototype, {
             }
         }
 
+		if (max === 0 && this.moved)
+            return 'left';
         return maxDir;
     },
 
@@ -109,14 +111,14 @@ $.extend(HTG.SelectionController.prototype, {
                     this.primaryActions.tapSelect.call(this);
                 }
                 else if (this.secondaryAction) {
-                    console.log(this.getSecondaryDirection());
-                    console.log(this.secondaryActions.code[this.getSecondaryDirection()].call(this));
+                    console.log(this.getTouchDirection());
+                    console.log(this.secondaryActions.code[this.getTouchDirection()].call(this));
                 }
 
             }
 
             if (this.actionType === 'line') {
-
+                console.log(this.secondaryActions.line[this.getTouchDirection()].call(this));
             }
 
             this.selecting = false;
@@ -128,10 +130,13 @@ $.extend(HTG.SelectionController.prototype, {
 
         _.each(this.selection.getLines(), function (ranges, lineNumber) {
             var line = self.htg.file.lines[lineNumber],
-                $row = self.htg.$('[data-line-index="'+lineNumber+'"]');
+                $row = self.htg.$('[data-line-index="'+lineNumber+'"]'),
+                $lineNumber = self.htg.$('[data-line-number-index="'+lineNumber+'"]');
 
             self.selection.$rows.push($row);
+            self.selection.$lineNumbers.push($lineNumber);
             self.htg.redrawRow($row, HTG.addHighlight(line, ranges));
+            self.htg.redrawRow($lineNumber, HTG.addHighlight($lineNumber.text(), [{}]));
         });
     },
 
@@ -184,8 +189,14 @@ $.extend(HTG.SelectionController.prototype, {
     redrawSelectedRows: function () {
         var self  = this;
         
+        // lines
         _.each(this.selection.$rows, function ($row) {
             this.htg.redrawRow($row);
+        });
+
+        // line numbers
+        _.each(this.selection.$lineNumbers, function ($lineNumber) {
+            this.htg.redrawRow($lineNumber, $lineNumber.text());
         });
     },
 
@@ -223,13 +234,33 @@ $.extend(HTG.SelectionController.prototype, {
             }
         },
 
-        line: {}
+        line: {
+            left: function () {
+                alert('delete');
+            },
+
+            right: function () {
+                alert('paste over');
+            },
+
+            up: function () {
+                alert('new line above');
+            },
+
+            down: function () {
+                alert('new line below');
+            },
+
+            tap: function () {
+                alert('select & copy');
+            }
+        }
     },
 
     setListeners: function () {
         this.htg.$overlay.on('touchstart mousedown', this.handlers.start.bind(this));
         this.htg.$overlay.on('touchmove mousemove', this.handlers.move.bind(this));
-        this.htg.$overlay.on('touchend mouseup', this.handlers.end.bind(this));
+        this.htg.$overlay.on('touchend touchcancel mouseup', this.handlers.end.bind(this));
 
         this.topControls = new HTG.Keyboard(this, this.htg.$topControls, {
             type: [ '<', '&#8634;'], 
