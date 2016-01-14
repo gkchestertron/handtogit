@@ -18,7 +18,7 @@ $.extend(HTG.Selection.prototype, {
 
         this.combineLines(this.range.getLines(), inverse);
 
-        // TODO add support for extending/spliting/truncating ranges
+        return this.range;
     },
 
     clear: function () {
