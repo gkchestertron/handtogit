@@ -33,21 +33,37 @@ HTG.benchmark = function (msg, context, func, args) {
 HTG.getTextColumn = function (event) {
     var $child  = $(event.currentTarget),
         $parent = $child.parent(),
-        eventX  = event.pageX || event.originalEvent.pageX || 
-            (event.originalEvent.touches && event.originalEvent.touches[0] && event.originalEvent.touches[0].pageX) ||
-            (event.originalEvent.changedTouches && event.originalEvent.changedTouches[0] && event.originalEvent.changedTouches[0].pageX),
-        left    = eventX - (HTG.consts.adjustedLeft - $parent.scrollLeft()),
-        col     = Math.floor(left/HTG.consts.fontWidth) - 1;
+        eventX  = event.pageX || 
+                  (event.originalEvent && 
+                   event.originalEvent.pageX) || 
+                  (event.originalEvent &&
+                   event.originalEvent.touches && 
+                   event.originalEvent.touches[0] && 
+                   event.originalEvent.touches[0].pageX) ||
+                  (event.originalEvent &&
+                   event.originalEvent.changedTouches && 
+                   event.originalEvent.changedTouches[0] && 
+                   event.originalEvent.changedTouches[0].pageX),
+        left = eventX - (HTG.consts.adjustedLeft - $parent.scrollLeft()),
+        col  = Math.floor(left/HTG.consts.fontWidth) - 1;
 
     return col;
 };
 
 HTG.getTextRow = function (event) {
-    var eventY  = event.pageY || event.originalEvent.pageY || 
-        (event.originalEvent.touches[0] && event.originalEvent.touches[0].pageY) ||
-        (event.originalEvent.changedTouches[0] && event.originalEvent.changedTouches[0].pageY),
-        rowHeight = HTG.consts.rowHeight,
-        rowNumber = Math.floor(($('pre').scrollTop() + eventY - HTG.consts.adjustedTop)/rowHeight),
+    var eventY  = event.pageY || 
+                  (event.originalEvent && 
+                   event.originalEvent.pageY) || 
+                  (event.originalEvent &&
+                   event.originalEvent.touches && 
+                   event.originalEvent.touches[0] && 
+                   event.originalEvent.touches[0].pageY) ||
+                  (event.originalEvent &&
+                   event.originalEvent.changedTouches && 
+                   event.originalEvent.changedTouches[0] && 
+                   event.originalEvent.changedTouches[0].pageY),        
+        rowHeight    = HTG.consts.rowHeight,
+        rowNumber    = Math.floor(($('pre').scrollTop() + eventY - HTG.consts.adjustedTop)/rowHeight),
         $suggestions = $('.htg-suggestion');
 
     if ($suggestions.length && $suggestions.offset().top < eventY)

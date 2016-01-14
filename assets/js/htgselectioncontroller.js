@@ -20,7 +20,7 @@ $.extend(HTG.SelectionController.prototype, {
                 right : 'replaceSelectionWithPaste',
                 up    : 'findPrev',
                 down  : 'findNext',
-                tap   : 'copy'
+                tap   : 'copySelection'
             }
         },
 
@@ -41,7 +41,7 @@ $.extend(HTG.SelectionController.prototype, {
                 endRow,
                 lastLine;
 
-            if (lines.length) {
+            if (lines.length && !this.add && !this.remove) {
                 endRow = lines[lines.length - 1];
                 lastLine = this.htg.file.lines[endRow];
                 this.startPoint.row = lines[0];
@@ -56,15 +56,12 @@ $.extend(HTG.SelectionController.prototype, {
                 this.endPoint.col   = lastLine.length - 1;
             }
 
-            this.updateRange();
             this.highlightRanges();
         },
 
         selectRange: function () {
             if (!this.htg.file.lines[this.endPoint.row] || this.endPoint.col < 0)
                 return;
-            this.redrawSelectedRows();
-            this.updateRange();
             this.highlightRanges();
         },
 
@@ -100,7 +97,6 @@ $.extend(HTG.SelectionController.prototype, {
 
             this.startPoint.col = start;
             this.endPoint.col   = end;
-            this.updateRange();
             this.highlightRanges();
         }
     },
@@ -125,6 +121,8 @@ $.extend(HTG.SelectionController.prototype, {
     handlers: {
         start: function (event) {
             this.resetSelectionFlags();
+            this.startPoint = this.getTouchPoint(event);
+            this.actionType = this.startPoint.col > -1 ? 'line' : 'lineNumber';
 
             if (this.actionType === 'line' && !this.add && !this.remove) {
                 if (this.selection.rangesContain(this.startPoint))
@@ -140,7 +138,7 @@ $.extend(HTG.SelectionController.prototype, {
             }
 
             if (this.actionType === 'lineNumber') {
-                if (!this.selection.linesContain(this.startPoint))
+                if (!this.selection.linesContain(this.startPoint) && !this.add && !this.remove)
                     this.clearSelection();
             }
         },
@@ -166,22 +164,16 @@ $.extend(HTG.SelectionController.prototype, {
             this.endPoint = this.getTouchPoint(event);
 
             if (this.actionType === 'line') {
-                if (!this.moved && this.actionLevel === 'primary') {
+                if (!this.moved && this.actionLevel === 'primary')
                     this.eventType = 'tap';
-                }
-                else if (this.actionLevel === 'secondary') {
+                else if (this.actionLevel === 'secondary')
                     this.eventType = this.getTouchDirection();
-                }
-
             }
 
-            // if (this.actionType === 'lineNumber') {
-            //     this.secondaryActions.line[this.getTouchDirection()].call(this);
-            // }
-            //
+            if (this.actionType === 'lineNumber')
+                this.eventType = this.getTouchDirection();
 
             this.callAction();
-
             this.selecting = false;
         }
     },
@@ -228,19 +220,23 @@ $.extend(HTG.SelectionController.prototype, {
         };
     },
 
-    
     highlightRanges: function () {
         var self = this;
+
+        this.redrawSelectedRows();
+        this.updateRange();
 
         _.each(this.selection.getLines(), function (ranges, lineNumber) {
             var line = self.htg.file.lines[lineNumber],
                 $row = self.htg.$('[data-line-index="'+lineNumber+'"]'),
                 $lineNumber = self.htg.$('[data-line-number-index="'+lineNumber+'"]');
 
-            self.selection.$rows.push($row);
-            self.selection.$lineNumbers.push($lineNumber);
-            self.htg.redrawRow($row, HTG.addHighlight(line, ranges));
-            self.htg.redrawRow($lineNumber, HTG.addHighlight($lineNumber.text(), [{}]));
+            if (ranges.length) {
+                self.selection.$rows.push($row);
+                self.htg.redrawRow($row, HTG.addHighlight(line, ranges));
+                self.selection.$lineNumbers.push($lineNumber);
+                self.htg.redrawRow($lineNumber, HTG.addHighlight($lineNumber.text(), [{}]));
+            }
         });
     },
 
@@ -263,52 +259,8 @@ $.extend(HTG.SelectionController.prototype, {
         this.hold             = false;
         this.selecting        = true;
         this.currentRange     = undefined;
-        this.startPoint       = this.getTouchPoint(event);
-        this.actionType       = this.startPoint.col > -1 ? 'line' : 'lineNumber';
         this.actionLevel      = 'primary';
         delete this.endPoint;
-    },
-
-    secondaryActions: {
-        code: {
-            left: function () {
-                console.log('delete');
-            },
-
-            right: function () {
-                console.log('paste');
-            },
-
-            up: function () {
-                console.log('find prev');
-            },
-
-            down: function () {
-                console.log('find next');
-            },
-
-            tap: function () {
-                console.log('copy');
-            }
-        },
-
-        line: {
-            left: function () {
-                alert('delete');
-            },
-
-            right: function () {
-                alert('paste over');
-            },
-
-            up: function () {
-                alert('new line above');
-            },
-
-            down: function () {
-                alert('new line below');
-            },
-        }
     },
 
     setListeners: function () {
@@ -354,9 +306,8 @@ $.extend(HTG.SelectionController.prototype, {
     },
     
     updateRange: function () {
-        if (!this.currentRange) {
+        if (!this.currentRange)
             this.currentRange = this.selection.addRange(this.startPoint, this.endPoint, this.block, this.remove);
-        }
         else
             this.selection.updateRange(this.startPoint, this.endPoint, this.block, this.remove);
     }
