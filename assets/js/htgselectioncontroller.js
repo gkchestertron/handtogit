@@ -84,7 +84,7 @@ $.extend(HTG.SelectionController.prototype, {
 
             if (this.actionType === 'line') {
                 if (!this.selection.linesContain(this.startPoint))
-                    this.selection.clear();
+                    this.clearSelection();
             }
         },
 
@@ -118,7 +118,7 @@ $.extend(HTG.SelectionController.prototype, {
             }
 
             if (this.actionType === 'line') {
-                console.log(this.secondaryActions.line[this.getTouchDirection()].call(this));
+                this.secondaryActions.line[this.getTouchDirection()].call(this);
             }
 
             this.selecting = false;
@@ -252,7 +252,27 @@ $.extend(HTG.SelectionController.prototype, {
             },
 
             tap: function () {
-                alert('select & copy');
+                var lines = _.map(Object.keys(this.selection.lines), function (num) { return parseInt(num) }),
+                    endRow,
+                    lastLine;
+
+                if (lines.length) {
+                    endRow = lines[lines.length - 1];
+                    lastLine = this.htg.file.lines[endRow];
+                    this.startPoint.row = lines[0];
+                    this.startPoint.col = 0;
+                    this.endPoint.row   = endRow;
+                    this.endPoint.col   = lastLine.length - 1;
+                }
+                else {
+                    endRow = this.endPoint.row;
+                    lastLine = this.htg.file.lines[endRow];
+                    this.startPoint.col = 0;
+                    this.endPoint.col   = lastLine.length - 1;
+                }
+
+                this.updateRange();
+                this.highlightRanges();
             }
         }
     },
