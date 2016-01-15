@@ -1,9 +1,9 @@
 HTG = window.HTG || {};
 
-HTG.Range = function (options) {
-    this.block   = options.block;
-    this.inverse = options.inverse;
-    this.update(options.startPoint, options.endPoint);
+HTG.Range = function (startPoint, endPoint, block, inverse) {
+    this.block   = block;
+    this.inverse = inverse;
+    this.update(startPoint, endPoint);
 };
 
 $.extend(HTG.Range.prototype, {
@@ -30,7 +30,9 @@ $.extend(HTG.Range.prototype, {
             range = _.range(this.startRow, this.endRow + 1);;
 
         _.each(range, function (lineNumber, idx) {
-            var thing = {};
+            lineNumber = parseInt(lineNumber);
+
+            var thing = { startRow: lineNumber, endRow: lineNumber };
 
             if (self.block || count === 1) {
                 thing.startCol = self.startCol;

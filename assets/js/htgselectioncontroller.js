@@ -7,11 +7,10 @@ HTG.SelectionController = function (htg) {
 };
 
 $.extend(HTG.SelectionController.prototype, {
-    actionsMap: {
+    actionMap: {
         line: {
             primary: {
                 drag : 'selectRange',
-                hold : 'moveSelection',
                 tap  : 'selectWord'
             },
 
@@ -20,6 +19,7 @@ $.extend(HTG.SelectionController.prototype, {
                 right : 'replaceSelectionWithPaste',
                 up    : 'findPrev',
                 down  : 'findNext',
+                hold  : 'moveSelection',
                 tap   : 'copySelection'
             }
         },
@@ -36,6 +36,33 @@ $.extend(HTG.SelectionController.prototype, {
     },
 
     actions: {
+        copySelection: function () {
+            this.htg.clipboard.push(this.selection.copy());
+        },
+
+        deleteLines: function (lineNumbers) {
+            lineNumbers = lineNumbers || this.selection.getLineNumbers();
+            this.clearSelection();
+            this.htg.file.deleteLines(lineNumbers);
+            this.htg.removeLines(lineNumbers);
+        },
+
+        deleteSelection() {
+            var self = this,
+                deleteLineNumbers = [];
+
+            this.htg.file.deleteRanges(this.selection.getLines());
+            this.redrawSelectedRows();
+            _.each(this.selection.getLineNumbers(), function (lineNumber) {
+                var fileLine = this.htg.file.lines[lineNumber];
+
+                if (!fileLine.length)
+                    deleteLineNumbers.push(lineNumber);
+            });
+            this.clearSelection();
+            self.actions.deleteLines.call(this, deleteLineNumbers);
+        },
+
         selectLines: function () {
             var lines = _.map(Object.keys(this.selection.lines), function (num) { return parseInt(num) }),
                 endRow,
@@ -62,6 +89,7 @@ $.extend(HTG.SelectionController.prototype, {
         selectRange: function () {
             if (!this.htg.file.lines[this.endPoint.row] || this.endPoint.col < 0)
                 return;
+
             this.highlightRanges();
         },
 
@@ -102,7 +130,7 @@ $.extend(HTG.SelectionController.prototype, {
     },
 
     callAction: function () {
-        var funcName = this.actionsMap[this.actionType][this.actionLevel][this.eventType];
+        var funcName = this.actionMap[this.actionType][this.actionLevel][this.eventType];
         if (funcName && this.actions[funcName])
             this.actions[funcName].apply(this, arguments);
     },
@@ -115,19 +143,21 @@ $.extend(HTG.SelectionController.prototype, {
 
     escape: function () {
         this.clearSelection();
+        this.resetActionFlags();
         this.resetSelectionFlags();
     },
 
     handlers: {
         start: function (event) {
-            this.resetSelectionFlags();
+            this.resetActionFlags();
             this.startPoint = this.getTouchPoint(event);
             this.actionType = this.startPoint.col > -1 ? 'line' : 'lineNumber';
+            this.selecting  = true;
 
             if (this.actionType === 'line' && !this.add && !this.remove) {
                 if (this.selection.rangesContain(this.startPoint))
                     this.actionLevel = 'secondary';
-                else if (!this.add && !this.remove)
+                else if (!this.add && !this.remove && this.startPoint.chr)
                     this.clearSelection();
 
                 // set hold flag in 200ms
@@ -146,15 +176,15 @@ $.extend(HTG.SelectionController.prototype, {
         move: function (event) {
             if (!this.selecting) return;
 
+            this.moved = true;
+
             this.endPoint = this.getTouchPoint(event);
 
             // block scrolling
             if (this.actionType === 'lineNumber' || this.startPoint.chr)
                 event.preventDefault();
 
-            this.moved = true;
-
-            if (this.actionType === 'line' && this.actionLevel === 'primary')
+            if (this.startPoint.chr && this.actionType === 'line' && this.actionLevel === 'primary')
                 this.eventType = 'drag';
 
             this.callAction();
@@ -167,18 +197,18 @@ $.extend(HTG.SelectionController.prototype, {
                 if (!this.moved && this.actionLevel === 'primary')
                     this.eventType = 'tap';
                 else if (this.actionLevel === 'secondary')
-                    this.eventType = this.getTouchDirection();
+                    this.eventType = this.getActionDirection();
             }
 
             if (this.actionType === 'lineNumber')
-                this.eventType = this.getTouchDirection();
+                this.eventType = this.getActionDirection();
 
             this.callAction();
             this.selecting = false;
         }
     },
 
-    getTouchDirection: function () {
+    getActionDirection: function () {
         var x = this.endPoint.col - this.startPoint.col,
             y = this.endPoint.row - this.startPoint.row,
             dirs = {
@@ -254,13 +284,22 @@ $.extend(HTG.SelectionController.prototype, {
         });
     },
 
-    resetSelectionFlags: function () {
+    resetActionFlags: function () {
         this.moved            = false;
         this.hold             = false;
-        this.selecting        = true;
         this.currentRange     = undefined;
         this.actionLevel      = 'primary';
+        this.eventType        = undefined;
         delete this.endPoint;
+    },
+
+    resetSelectionFlags: function () {
+        this.add = false;
+        this.htg.$('[data-handler="toggleAdd"]').removeClass('htg-key-active');
+        this.remove = false;
+        this.htg.$('[data-handler="toggleRemove"]').removeClass('htg-key-active');
+        this.block = false;
+        this.htg.$('[data-handler="toggleBlock"]').removeClass('htg-key-active');
     },
 
     setListeners: function () {

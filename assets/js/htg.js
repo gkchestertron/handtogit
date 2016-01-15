@@ -21,6 +21,7 @@ window.HTG = window.HTG || (function () {
         "};\n");
         this.setLanguage('javascript');
         this.selectionController = new HTG.SelectionController(this);
+        this.clipboard = new HTG.Clipboard(this);
     };
     
     $.extend(HTG.prototype, {
@@ -53,17 +54,6 @@ window.HTG = window.HTG || (function () {
             this.$pre.append(this.$overlay);
         },
 
-        drawKeyboard: function () {
-            var self = this, 
-                keys = '';
-
-            _.each(_.range(97, 123), function (num) { 
-                keys += String.fromCharCode(num);
-            });
-
-            self.$('.htg-keyboard').html(keys);
-        },
-
         loadFromFile: function (event) {
             var self   = this,
                 reader = new FileReader(),
@@ -87,7 +77,7 @@ window.HTG = window.HTG || (function () {
             text = _.map(this.file.lines, function (line, idx) {
                 return '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
                         HTG.htmlConvert(line, 'html') + '</span>';
-            }).join('\n');
+            }).join('<span class="htg-break">\n</span>');
 
             this.$code.html(text);
             while (i++ < 30) this.$code.append('\n');
@@ -124,6 +114,20 @@ window.HTG = window.HTG || (function () {
             $row.removeClass('hljs');
         },
 
+        removeLines: function (lineNumbers) {
+            var self = this;
+
+            _.each(lineNumbers, function (lineNumber) {
+                var $row = self.$('span[data-line-index="'+lineNumber+'"]'),
+                    $break = $row.next('.htg-break');;
+
+                $row.remove();
+                $break.remove();
+            });
+
+            this.renumber();
+        },
+
         renumber: function () {
             var numberWidth = this.file.lines.length.toString().length;
 
@@ -138,6 +142,10 @@ window.HTG = window.HTG || (function () {
             }));
 
             hljs.highlightBlock(this.$numbers[0]);
+
+            this.$('span.htg-editor-row').each(function (idx,row) {
+                $(row).attr('data-line-index', idx);
+            });
         },
 
         replaceSelection(text) {

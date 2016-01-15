@@ -7,17 +7,9 @@ HTG.Selection = function (htg) {
 
 $.extend(HTG.Selection.prototype, {
     addRange: function (startPoint, endPoint, block, inverse) {
-        this.range = new HTG.Range({
-            startPoint : startPoint,
-            endPoint   : endPoint,
-            block      : block,
-            inverse    : inverse
-        });
-
+        this.range = new HTG.Range(startPoint, endPoint, block, inverse);
         this.prevLines = this.lines;
-
         this.combineLines(this.range.getLines(), inverse);
-
         return this.range;
     },
 
@@ -53,6 +45,31 @@ $.extend(HTG.Selection.prototype, {
         });
     },
 
+    copy: function () {
+        var lines = $.extend(true, {}, this.getLines()),
+            file  = this.htg.file,
+            offset;
+
+        _.each(lines, function (line, lineNumber) {
+            _.each(line, function (range) {
+                if (offset === undefined)
+                    offset = range.startCol;
+
+                range.string = file.getString(range);
+                range.startCol -= offset;
+                range.endCol -= offset;
+            });
+        });
+
+        return lines;
+    },
+
+    getLineNumbers: function () {
+        return _.map(Object.keys(this.lines), function (lineNumber) {
+            return parseInt(lineNumber);
+        });
+    },
+
     getLines: function () {
         var self  = this,
             lines = {};
@@ -60,12 +77,13 @@ $.extend(HTG.Selection.prototype, {
         _.each(this.lines, function (line, lineIdx) {
             var startCol = line[0];
 
+            lineIdx = parseInt(lineIdx);
             lines[lineIdx] = [];
             _.each(line, function (col, idx) {
                 var nextCol = line[idx + 1];
 
                 if (nextCol - col > 1 || idx === line.length - 1) {
-                    lines[lineIdx].push({ startCol: startCol, endCol: col });
+                    lines[lineIdx].push({ startRow: lineIdx, endRow: lineIdx, startCol: startCol, endCol: col });
                     startCol = nextCol;
                 }
             });
