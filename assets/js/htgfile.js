@@ -16,12 +16,8 @@ $.extend(HTG.File.prototype, {
         this.words = [];
 
         _.each(this.fileString.match(/\w+/g), function (word) {
-            if (
-                language.defs.keywords.indexOf(word) === -1 &&
-                    self.words.indexOf(word) === -1
-            ) {
+            if (language.defs.keywords.indexOf(word) === -1 && self.words.indexOf(word) === -1)
                 self.words.push(word);
-            }
         });
     },
 
@@ -55,6 +51,10 @@ $.extend(HTG.File.prototype, {
         });
     },
 
+    getLines: function (ranges) {
+
+    },
+
     getString: function (range) {
         var startSlice, intermediateRows, endSlice;
 
@@ -76,5 +76,57 @@ $.extend(HTG.File.prototype, {
         });
 
         return suggestions.slice(0, limit);
+    },
+
+    replaceRange: function (srcRanges, destRange) {
+
+    },
+
+    /*
+     * replaces destination ranges with source ranges within the file's lines
+     * - will restart at beginning of source ranges if there are more destination ranges than source ranges
+     * @param {object} srcRangesObj - an object containing arrays of ranges by line number
+     * - ranges contain a string representing the file's content in that range at the time the range was made
+     * - ranges contain relative cols and rows
+     * @param {array} - array of destination ranges
+     */
+    replaceRanges: function (srcRangesObj, destRanges) {
+        var self        = this,
+            lines       = {},
+            srcRangeIdx = 0
+            srcRangeArr = [];
+        
+        // return if there is no src
+        if (!srcRangesObj) 
+            return;
+
+        // convert object into flat array
+        _.each(srcRangesObj, function (rangeArr) {
+            srcRangeArr = srcRangeArr.concat(rangeArr);
+        });
+
+        // get unique rows
+        _.each(_.unique(destRanges, function (range) { return range.startRow }), function (range) {
+            lines[range.startRow] = self.lines[range.startRow].split('');
+        });
+
+        // overwrite each range on each row with string from clipboard
+        _.each(destRanges, function (range, idx) {
+            var line = lines[range.startRow];
+
+            _.each(_.range(range.startCol, range.endCol + 1), function (col) {
+                line[col] = '';
+            });
+
+            line[range.startCol] = srcRangeArr[srcRangeIdx++].string;
+
+            if (!srcRangeArr[srcRangeIdx])
+                srcRangeIdx = 0;
+        });
+
+        // rejoin rows
+        _.each(lines, function (line, lineNumber) {
+            self.lines[lineNumber] = line.join('');
+        });
     }
 });

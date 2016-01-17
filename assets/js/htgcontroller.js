@@ -1,12 +1,12 @@
 HTG = window.HTG || {};
 
-HTG.SelectionController = function (htg) {
+HTG.Controller = function (htg) {
     this.htg = htg;
     this.selection = new HTG.Selection(htg);
     this.setListeners();
 };
 
-$.extend(HTG.SelectionController.prototype, {
+$.extend(HTG.Controller.prototype, {
     actionMap: {
         line: {
             primary: {
@@ -16,7 +16,7 @@ $.extend(HTG.SelectionController.prototype, {
 
             secondary: {
                 left  : 'deleteSelection',
-                right : 'replaceSelectionWithPaste',
+                right : 'paste',
                 up    : 'findPrev',
                 down  : 'findNext',
                 hold  : 'moveSelection',
@@ -27,7 +27,7 @@ $.extend(HTG.SelectionController.prototype, {
         lineNumber: {
             primary: {
                 left  : 'deleteLines',
-                right : 'replaceLinesWithPaste',
+                right : 'replaceLines',
                 up    : 'openNewLineAbove',
                 down  : 'openNewLineBelow',
                 tap   : 'selectLines'
@@ -38,6 +38,7 @@ $.extend(HTG.SelectionController.prototype, {
     actions: {
         copySelection: function () {
             this.htg.clipboard.push(this.selection.copy());
+            this.htg.flash();
         },
 
         deleteLines: function (lineNumbers) {
@@ -61,6 +62,13 @@ $.extend(HTG.SelectionController.prototype, {
             });
             this.clearSelection();
             self.actions.deleteLines.call(this, deleteLineNumbers);
+        },
+
+        paste: function () {
+            var srcRanges = this.htg.clipboard.last();
+            this.htg.file.replaceRanges(srcRanges, this.selection.ranges);
+            this.redrawSelectedRows();
+            this.selection.clear();
         },
 
         selectLines: function () {
@@ -305,7 +313,7 @@ $.extend(HTG.SelectionController.prototype, {
     setListeners: function () {
         this.htg.$overlay.on('touchstart mousedown', this.handlers.start.bind(this));
         this.htg.$overlay.on('touchmove mousemove', this.handlers.move.bind(this));
-        this.htg.$overlay.on('touchend touchcancel mouseup', this.handlers.end.bind(this));
+        this.htg.$overlay.on('touchend', this.handlers.end.bind(this));
 
         this.topControls = new HTG.Keyboard(this, this.htg.$topControls, {
             type: [ '<', '&#8634;'], 

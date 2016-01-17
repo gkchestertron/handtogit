@@ -4,7 +4,14 @@
 }
 
 .htg-code {
-    padding-top: 40px !important;
+    padding-top: 45px !important;
+    padding-bottom: 45px !important;
+}
+
+.htg-flash {
+    background-color: #002a00 !important;
+    -webkit-transition: background-color .15s linear;
+    transition: background-color .15s linear;
 }
 
 .htg-top-bar {
@@ -25,7 +32,7 @@
 }
 
 .htg-pre {
-    background: #000;
+    background-color: #000;
     border: 1px solid black;
     font-size: 18px;
     height: 100%;
@@ -73,7 +80,7 @@
     padding-left: 0px !important;
     padding-right: 0px !important;
     padding-bottom: 0px !important;
-    padding-top: 40px !important;
+    padding-top: 45px !important;
 }
 
 .htg-overlay {

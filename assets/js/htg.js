@@ -20,7 +20,7 @@ window.HTG = window.HTG || (function () {
         "    };\n" +
         "};\n");
         this.setLanguage('javascript');
-        this.selectionController = new HTG.SelectionController(this);
+        this.controller = new HTG.Controller(this);
         this.clipboard = new HTG.Clipboard(this);
     };
     
@@ -54,6 +54,19 @@ window.HTG = window.HTG || (function () {
             this.$pre.append(this.$overlay);
         },
 
+        flash: function () {
+            var self = this;
+
+            this.$code.addClass('htg-flash');
+            this.$pre.addClass('htg-flash');
+            this.$numbers.addClass('htg-flash');
+            setTimeout(function () {
+                self.$code.removeClass('htg-flash');
+                self.$pre.removeClass('htg-flash');
+                self.$numbers.removeClass('htg-flash');
+            }, 200);
+        },
+
         loadFromFile: function (event) {
             var self   = this,
                 reader = new FileReader(),
@@ -80,7 +93,7 @@ window.HTG = window.HTG || (function () {
             }).join('<span class="htg-break">\n</span>');
 
             this.$code.html(text);
-            while (i++ < 30) this.$code.append('\n');
+            // while (i++ < 30) this.$code.append('\n');
             this.renumber();
 
             hljs.highlightBlock(this.$code[0]);
@@ -143,9 +156,13 @@ window.HTG = window.HTG || (function () {
 
             hljs.highlightBlock(this.$numbers[0]);
 
-            this.$('span.htg-editor-row').each(function (idx,row) {
+            this.$('span.htg-editor-row').each(function (idx, row) {
                 $(row).attr('data-line-index', idx);
+                $(row).data('line-index', idx);
             });
+
+            // resize overlay
+            this.resizeOverlay();
         },
 
         replaceSelection(text) {
@@ -163,9 +180,19 @@ window.HTG = window.HTG || (function () {
         },
 
         resizeOverlay: function () {
-            this.$overlay.width($(_.max(this.$('.htg-editor-row'), function (row) { 
-                return $(row).width(); 
+            var $editorRows = this.$('.htg-editor-row');
+            
+            if (!$editorRows.length)
+                return;
+
+            this.$overlay.width($(_.max($editorRows, function (row) { 
+                return $(row).width();
             })).width());
+
+            if (this.$overlay.width() < this.$pre.width())
+                this.$overlay.width(this.$pre.width());
+
+            this.$overlay.height(this.$code.height());
         },
 
         selectFile: function () {
@@ -201,10 +228,7 @@ window.HTG = window.HTG || (function () {
             // add in adjustment for border and padding
             this.consts.adjustedLeft = offset.left + adjustment;
             this.consts.adjustedTop  = offset.top  + HTG.stripPx(border) + HTG.stripPx(paddingTop);
-            this.consts.rowHeight = (this.$code.height() + (2 * this.consts.adjustedTop))/(this.file.lines.length + 29)
-
-            // resize overlay
-            this.resizeOverlay();
+            this.consts.rowHeight = (this.$code.height())/(this.file.lines.length)
         },
 
         setLanguage: function (language) {
@@ -212,7 +236,7 @@ window.HTG = window.HTG || (function () {
                 script = document.createElement('script'),
                 head   = document.getElementsByTagName('body')[0];
 
-            script.src = 'languages/' + language + '.js';
+            script.src = 'assets/js/languages/' + language + '.js';
             head.appendChild(script);
 
             script.onload = function () {

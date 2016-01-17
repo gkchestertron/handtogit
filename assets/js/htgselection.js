@@ -10,11 +10,13 @@ $.extend(HTG.Selection.prototype, {
         this.range = new HTG.Range(startPoint, endPoint, block, inverse);
         this.prevLines = this.lines;
         this.combineLines(this.range.getLines(), inverse);
+        this.ranges.push(this.range);
         return this.range;
     },
 
     clear: function () {
         this.range        = undefined;
+        this.ranges       = [];
         this.lines        = {};
         this.$lineNumbers = []
         this.prevLines    = {};
@@ -48,16 +50,22 @@ $.extend(HTG.Selection.prototype, {
     copy: function () {
         var lines = $.extend(true, {}, this.getLines()),
             file  = this.htg.file,
-            offset;
+            colOffset,
+            rowOffset;
 
         _.each(lines, function (line, lineNumber) {
             _.each(line, function (range) {
-                if (offset === undefined)
-                    offset = range.startCol;
+                if (colOffset === undefined)
+                    colOffset = range.startCol;
+
+                if (rowOffset === undefined)
+                    rowOffset = range.startRow;
 
                 range.string = file.getString(range);
-                range.startCol -= offset;
-                range.endCol -= offset;
+                range.startCol -= colOffset;
+                range.endCol -= colOffset;
+                range.startRow -= rowOffset;
+                range.endRow   -= rowOffset;
             });
         });
 

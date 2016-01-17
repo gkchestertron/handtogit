@@ -6,6 +6,10 @@ HTG.Clipboard = function (htg) {
 };
 
 $.extend(HTG.Clipboard.prototype, {
+    last: function () {
+        return this.selections.slice(-1)[0];
+    },
+
     pop: function () {
         return this.selections.pop();
     },
