@@ -38,7 +38,6 @@ window.HTG = window.HTG || (function () {
             this.$controls    = $('<div class="htg-controls"></div>');
             this.$keyboard    = $('<div class="htg-keyboard"></div>');
             this.$mainCont    = $('<div class="htg-main-controls"></div>');
-            this.state.$code  = this.$code;
 
             // append the things
             this.$element.append(this.$wrapper);
@@ -73,14 +72,14 @@ window.HTG = window.HTG || (function () {
                 file   = event.currentTarget.files[0];
 
             reader.onload = function (event) {
-                // self.$topBar.html(file.name); // TODO need to show filename somewhere 
+                self.file.state.reset();
                 self.loadFromString(event.target.result);
             }
 
             reader.readAsText(file);
         },
 
-        loadFromString: function (fileString) {
+        loadFromString: function (fileString, saveState) {
             var self = this,
                 i    = 0,
                 text;
@@ -99,7 +98,11 @@ window.HTG = window.HTG || (function () {
             this.setConstants();
             if (this.language)
                 this.file.buildWordList(this.language);
-            // this.state.save();
+
+            // save state
+            if (saveState !== false)
+                this.file.state.save(fileString);
+                // self.$topBar.html(file.name); // TODO need to show filename somewhere 
             this.renumber();
         },
 
@@ -128,10 +131,10 @@ window.HTG = window.HTG || (function () {
         },
 
         reload: function () {
-            var diff = this.file.commit();
+            var diff   = this.file.commit(), // for later
+                string = this.file.lines.join('\n');
 
-            console.log(diff);
-            this.loadFromString(this.file.lines.join('\n'));
+            this.loadFromString(string);
         },
 
         removeLines: function (lineNumbers) {
@@ -288,41 +291,6 @@ window.HTG = window.HTG || (function () {
                     self.splitPre();
                 }
             });
-        },
-
-        state: {
-            pointer: -1,
-
-            redo: function () {
-                if (this.pointer > this.stack.length - 2) return false;
-                this.pointer++;
-                $code.html(this.stack[this.pointer]);
-                return true;
-            },
-
-            save: function () {
-                // remove forward history
-                this.stack = this.stack.slice(0, this.pointer + 1);
-
-                // remove line numbers
-                $('#editor > pre span.line-number').remove();
-
-                // save text copy of file
-                this.stack.push(this.$code.text());
-
-                // move pointer
-                this.pointer++;
-            },
-
-
-            undo: function () {
-                if (this.pointer < 1) return false;
-                this.pointer--;
-                this.$code.html(this.stack[this.pointer]);
-                return true;
-            },
-
-            stack: []
         },
 
         toggleFullScreen: function () {

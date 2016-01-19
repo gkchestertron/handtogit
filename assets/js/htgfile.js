@@ -370,6 +370,40 @@ $.extend(HTG.File.prototype, {
         });
     },
 
+    state: {
+        pointer: -1,
+
+        next: function () {
+            if (this.pointer > this.stack.length - 2) return false;
+            this.pointer++;
+            return this.stack[this.pointer];
+        },
+
+        reset: function () {
+            this.pointer = -1;
+            this.stack   = [];
+        },
+
+        save: function (state) {
+            // remove forward history
+            this.stack = this.stack.slice(0, this.pointer + 1);
+
+            // save text copy of file
+            this.stack.push(state);
+
+            // move pointer
+            this.pointer++;
+        },
+
+        prev: function () {
+            if (this.pointer < 1) return false;
+            this.pointer--;
+            return this.stack[this.pointer];
+        },
+
+        stack: []
+    },
+
     /**
      * splits line at given index
      * @param {int} lineIdx  - index of lineIdx

@@ -285,8 +285,11 @@ $.extend(HTG.Controller.prototype, {
         });
     },
 
-    redrawRows: function (diff) {
-        
+    redo: function () {
+        var string = this.htg.file.state.next();
+
+        if (string)
+            this.htg.loadFromString(string, false);
     },
 
     redrawSelectedRows: function () {
@@ -325,11 +328,13 @@ $.extend(HTG.Controller.prototype, {
         this.htg.$overlay.on('touchend', this.handlers.end.bind(this));
 
         this.topControls = new HTG.Keyboard(this, this.htg.$topControls, {
-            type: [ '<', '&#8634;'], 
+            type:  '<', 
+            undo: '&#8634;', 
             toggleRemove: '-', 
             toggleBlock: '&#x2630;',
             toggleAdd: '+',
-            type2: ['&#8635;', '>', '/'], 
+            redo: '&#8635;',
+            type2: ['>', '/'], 
             escape: 'esc'
         });
     },
@@ -359,6 +364,13 @@ $.extend(HTG.Controller.prototype, {
 
     type2: function (event) {
         console.log($(event.currentTarget).text());
+    },
+
+    undo: function () {
+        var string = this.htg.file.state.prev();
+
+        if (string)
+            this.htg.loadFromString(string, false);
     },
     
     updateRange: function () {
