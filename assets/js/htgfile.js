@@ -17,7 +17,8 @@ $.extend(HTG.File.prototype, {
      * @param {string|string[]} lines - a line of array of lines to add
      * @param {int}             idx   - index at which to insert lines
      */
-    addLine: function (lines, idx) {
+    addLines: function (lines, idx) {
+        console.log(arguments);
         lines = this.array(lines);
         this.newLines[idx] = this.newLines[idx] || [];
         this.newLines[idx] = lines.concat(this.newLines[idx]);
@@ -165,19 +166,30 @@ $.extend(HTG.File.prototype, {
         return lines;
     },
 
-    // TODO deprecate
+    /**
+     * gets a string from the file given a range
+     * @param {Range} range - the range to get a string for
+     * @return {string} - string with multiple lines joined with \ns
+     */
     getString: function (range) {
-        var startSlice, intermediateRows, endSlice;
+        var startSlice, intermediateRows, endSlice, string;
 
         if (range.endRow - range.startRow > 1) {
             startSlice       = this.lines[range.startRow].slice(range.startCol);
-            intermediateRows = this.lines.slice(range.startRow + 1, range.endRow - 1).join('\n');
+            intermediateRows = this.lines.slice(range.startRow + 1, range.endRow).join('\n');
             endSlice         = this.lines[range.endRow].slice(0, range.endCol + 1);
-            return startSlice+'\n'+intermediateRows+'\n'+endSlice;
+            string = startSlice+'\n'+intermediateRows+'\n'+endSlice;
+        }
+        else if (range.endRow - range.startRow > 0) {
+            startSlice       = this.lines[range.startRow].slice(range.startCol);
+            endSlice         = this.lines[range.endRow].slice(0, range.endCol + 1);
+            string = startSlice+'\n'+endSlice;
         }
         else {
-            return this.lines[range.startRow].slice(range.startCol, range.endCol + 1)
+            string = this.lines[range.startRow].slice(range.startCol, range.endCol + 1)
         }
+
+        return string;
     },
 
     getSuggestions: function (match, limit) {
@@ -195,8 +207,8 @@ $.extend(HTG.File.prototype, {
      * @param {string} text - the text to insert
      */
     insert: function (range, text) {
-        var insertion = this.insertions[range.startCol] = 
-                this.insertions[range.startCol] || [];
+        var insertion = this.insertions[range.startRow] = 
+                this.insertions[range.startRow] || [];
 
         if (typeof(this.lines[range.startRow]) === 'string')
             this.lines[range.startRow] = this.lines[range.startRow].split('');
@@ -264,7 +276,7 @@ $.extend(HTG.File.prototype, {
                     .concat(self.lines[lineIdx].slice(splitIdx));
 
                 if (newLinesLength > 1) {
-                    self.splitLine(lineIdx, splitIdx);
+                    self.splitLine(lineIdx, splitIdx + 1);
                     self.addLines(newLines, lineIdx);
                 }
             });
@@ -284,16 +296,18 @@ $.extend(HTG.File.prototype, {
         newLinesArr.sort(function (a, b) { return a.lineNumber - b.lineNumber; });
 
         _.each(newLinesArr, function (newLinesObj) {
-            var idx = newLinesObj.lineNumber + offset;
+            var idx = newLinesObj.lineNumber + offset + 1;
 
-            _.each(newLinesObj.lines, function (line) {
+            _.each(newLinesObj.lines, function (line, lineIdx) {
                 if (!Array.isArray(line))
                     line = line.split('');
 
                 line.isNew = true;
+
+                newLinesObj[lineIdx] = line;
             });
 
-            self.lines = self.lines.slice(0, idx).concat(lines).concat(self.lines.slice(idx));
+            self.lines = self.lines.slice(0, idx).concat(newLinesObj.lines).concat(self.lines.slice(idx));
 
             offset += newLinesObj.lines.length;
         });
@@ -360,7 +374,7 @@ $.extend(HTG.File.prototype, {
         if (typeof(this.lines[lineIdx]) === 'string')
             this.lines[lineIdx] = this.lines[lineIdx].split('');
 
+        this.addLines([this.lines[lineIdx].slice(splitIdx)], lineIdx);
         this.lines[lineIdx] = this.lines[lineIdx].slice(0, splitIdx);
-        this.addLine(this.lines[lineIdx].slice(splitIdx));
     }
 });
