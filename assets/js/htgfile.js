@@ -18,7 +18,6 @@ $.extend(HTG.File.prototype, {
      * @param {int}             idx   - index at which to insert lines
      */
     addLines: function (lines, idx) {
-        console.log(arguments);
         lines = this.array(lines);
         this.newLines[idx] = this.newLines[idx] || [];
         this.newLines[idx] = lines.concat(this.newLines[idx]);
@@ -58,26 +57,30 @@ $.extend(HTG.File.prototype, {
     commit: function () {
         var lines = [],
             diff  = {
-                added   : [],
-                changed : [],
-                deleted : []
+                added   : {},
+                changed : {},
+                deleted : {}
             };
 
         this.makeInsertions();
         this.makeNewLines();
 
         _.each(this.lines, function (line, idx) {
-            if (line === undefined) {
-                diff.deleted.push(idx);
+            var isNew    = line.isNew,
+                isDelete = line.isDelete,
+                isChange = Array.isArray(line);
+
+            if (Array.isArray(line))
+                line = line.join('');
+
+            if (isDelete) {
+                diff.deleted[idx] = line;
             }
             else {
-                if (line.isNew)
-                    diff.added.push(idx);
-                else if (Array.isArray(line))
-                    diff.changed.push(idx);
-
-                if (Array.isArray(line))
-                    line = line.join('');
+                if (isNew)
+                    diff.added[idx] = line;
+                else if (isChange)
+                    diff.changed[idx] = line;
 
                 lines.push(line);
             }
@@ -138,7 +141,9 @@ $.extend(HTG.File.prototype, {
         idxs = this.array(idxs);
 
         _.each(idxs, function (idx) {
-            self.lines[idx] = undefined;
+            if (typeof(self.lines[idx]) === 'string')
+                self.lines[idx] = self.lines[idx].split('');
+            self.lines[idx].isDelete = true;
         });
     },
 
