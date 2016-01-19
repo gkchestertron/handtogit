@@ -100,6 +100,28 @@ $.extend(HTG.Selection.prototype, {
         return lines;
     },
 
+    getRanges: function () {
+        var lines   = this.getLines(),
+            overlap = false,
+            ranges  = [];
+
+        _.each(this.ranges, function (range) {
+            if (range.inverse)
+                overlap = true;
+        });
+
+        if (!overlap)
+            return this.ranges;
+
+        _.each(lines, function (lineRanges) {
+            _.each(lineRanges, function (range) {
+                ranges.push(range);
+            });
+        });
+
+        return ranges;
+    },
+
     linesContain: function (point) {
         return Object.keys(this.lines).indexOf(point.row.toString()) > -1;
     },

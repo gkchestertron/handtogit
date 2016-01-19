@@ -41,27 +41,21 @@ $.extend(HTG.Controller.prototype, {
             this.htg.flash();
         },
 
-        deleteLines: function (lineNumbers) {
-            lineNumbers = lineNumbers || this.selection.getLineNumbers();
-            this.clearSelection();
+        deleteLines: function () {
+            var lineNumbers = this.selection.getLineNumbers();
+            this.clearSelection(false);
             this.htg.file.deleteLines(lineNumbers);
-            this.htg.removeLines(lineNumbers);
+            this.htg.reload();
         },
 
-        deleteSelection() {
+        deleteSelection: function () {
             var self = this,
-                deleteLineNumbers = [];
+                diff;
 
-            this.htg.file.deleteRanges(this.selection.getLines());
-            this.redrawSelectedRows();
-            _.each(this.selection.getLineNumbers(), function (lineNumber) {
-                var fileLine = this.htg.file.lines[lineNumber];
-
-                if (!fileLine.length)
-                    deleteLineNumbers.push(lineNumber);
-            });
-            this.clearSelection();
-            self.actions.deleteLines.call(this, deleteLineNumbers);
+            this.htg.file.deleteRanges(this.selection.getRanges());
+            diff = this.htg.file.commit();
+            this.clearSelection(false);
+            this.htg.reload();
         },
 
         paste: function () {
@@ -143,8 +137,9 @@ $.extend(HTG.Controller.prototype, {
             this.actions[funcName].apply(this, arguments);
     },
 
-    clearSelection: function () {
-        this.redrawSelectedRows();
+    clearSelection: function (redraw) {
+        if (redraw !== false)
+            this.redrawSelectedRows();
         this.selection.clear();
         this.currentRange = undefined;
     },
@@ -162,7 +157,7 @@ $.extend(HTG.Controller.prototype, {
             this.actionType = this.startPoint.col > -1 ? 'line' : 'lineNumber';
             this.selecting  = true;
 
-            if (this.actionType === 'line' && !this.add && !this.remove) {
+            if (this.actionType === 'line' && !this.remove) {
                 if (this.selection.rangesContain(this.startPoint))
                     this.actionLevel = 'secondary';
                 else if (!this.add && !this.remove && this.startPoint.chr)
@@ -276,6 +271,10 @@ $.extend(HTG.Controller.prototype, {
                 self.htg.redrawRow($lineNumber, HTG.addHighlight($lineNumber.text(), [{}]));
             }
         });
+    },
+
+    redrawRows: function (diff) {
+        
     },
 
     redrawSelectedRows: function () {

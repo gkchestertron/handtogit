@@ -3,6 +3,8 @@ window.HTG = window.HTG || {};
 HTG.File = function (fileString) {
     this.fileString = HTG.replaceAll(fileString, /\t/g, { '\t': '    ' }); // replace tabs
     this.lines      = this.fileString.split(/\n|\r/);
+    this.newLines   = {};
+    this.insertions = {};
 
     // remove extraneous newline if it exists
     if (this.lines.slice(-1)[0] === "") 
@@ -10,6 +12,29 @@ HTG.File = function (fileString) {
 };
 
 $.extend(HTG.File.prototype, {
+    /**
+     * adds a line or an array of lines to the newLines object for insertion upon commit
+     * @param {string|string[]} lines - a line of array of lines to add
+     * @param {int}             idx   - index at which to insert lines
+     */
+    addLine: function (lines, idx) {
+        lines = this.array(lines);
+        this.newLines[idx] = this.newLines[idx] || [];
+        this.newLines[idx] = lines.concat(this.newLines[idx]);
+    },
+
+    /**
+     * returns anything wrapped in an array if it isn't one already
+     * @param {variable} thing - thing to wrap as an array
+     * @return {array} thing wrapped in array
+     */
+    array: function (thing) {
+        if (!Array.isArray(thing))
+            thing = [thing];
+
+        return thing;
+    },
+
     buildWordList: function (language) {
         var self = this;
 
@@ -21,40 +46,126 @@ $.extend(HTG.File.prototype, {
         });
     },
 
-    deleteLines: function (lineNumbers) {
-        var newLines = [];
+    /**
+     * iterates over lines
+     * - builds diff
+     * - removes deleted lines
+     * - adds in insertions and new lines
+     * - converts changed/added lines back to strings (from arrays)
+     * @return {object} the diff containing the indices of changed, added and removed lines
+     */
+    commit: function () {
+        var lines = [],
+            diff  = {
+                added   : [],
+                changed : [],
+                deleted : []
+            };
+
+        this.makeInsertions();
+        this.makeNewLines();
 
         _.each(this.lines, function (line, idx) {
-            if (lineNumbers.indexOf(idx) === -1)
-                newLines.push(line);
+            if (line === undefined) {
+                diff.deleted.push(idx);
+            }
+            else {
+                if (line.isNew)
+                    diff.added.push(idx);
+                else if (Array.isArray(line))
+                    diff.changed.push(idx);
+
+                if (Array.isArray(line))
+                    line = line.join('');
+
+                lines.push(line);
+            }
         });
 
-        this.lines = newLines;
+        this.lines      = lines;
+        this.newLines   = {};
+        this.insertions = {};
+
+        return diff;
     },
 
-    deleteRanges: function (lines) {
+    /**
+     * deletes a range or array of ranges from a file, joining the last line to the first
+     * @param {Range|Range[]} ranges - the range or array of ranges to delete 
+     */
+    deleteRanges: function (ranges) {
+        var self  = this,
+            lines = this.getLines(ranges),
+            startCol, 
+            endCol;
+
+        ranges = this.array(ranges);
+
+        ranges.sort(function (a, b) {
+            return b.startRow - a.startRow;
+        });
+
+        _.each(ranges, function (range) {
+            for (var row = range.startRow; row <= range.endRow; row++) {
+                startCol = 0;
+                endCol   = lines[row].length;
+
+                if (row === range.startRow)
+                    startCol = range.startCol;
+
+                if (row === range.endRow)
+                    endCol = range.endCol;
+
+                if (row > range.startRow && row < range.endRow)
+                    self.deleteLines(row);
+                else
+                    for (var col = startCol; col <= endCol; col++)
+                        lines[row][col] = '';
+            }
+
+            self.joinLines(range);
+        });
+    },
+
+    /**
+     * marks a line or lines for deletion by setting its contents to undefined
+     * @param {int|int[]} - the line or array of lines to delete
+     */
+    deleteLines: function (idxs) {
         var self = this;
 
-        _.each(lines, function (line, lineNumber) {
-            var fileLine = self.lines[lineNumber],
-                startIdx = 0,
-                newLine  = '';
+        idxs = this.array(idxs);
 
-            _.each(line, function (range) {
-                newLine += fileLine.slice(startIdx, range.startCol);
-                startIdx = range.endCol + 1;
-            });
-
-            newLine += fileLine.slice(startIdx);
-
-            self.lines[lineNumber] = newLine;
+        _.each(idxs, function (idx) {
+            self.lines[idx] = undefined;
         });
     },
 
+    /** 
+     * @param {Range|Range[]} ranges - a range or array of ranges
+     * @returns {object} lines from the file corresponding to a set of given ranges
+     * lines are split into arrays so they can be referenced easily whether 
+     * their index is changed by adding or deleting rows
+     */
     getLines: function (ranges) {
+        var self  = this,
+            lines = {};
 
+        ranges = this.array(ranges);
+
+        _.each(ranges, function (range) {
+            for (var i = range.startRow; i <= range.endRow; i++) {
+                if (typeof(self.lines[i]) === 'string')
+                    self.lines[i] = self.lines[i].split('');
+
+                lines[i] = self.lines[i];
+            }
+        });
+
+        return lines;
     },
 
+    // TODO deprecate
     getString: function (range) {
         var startSlice, intermediateRows, endSlice;
 
@@ -76,6 +187,117 @@ $.extend(HTG.File.prototype, {
         });
 
         return suggestions.slice(0, limit);
+    },
+
+    /**
+     * adds insertion to insertions object
+     * @param {Range} range - range to use for start point of insertion
+     * @param {string} text - the text to insert
+     */
+    insert: function (range, text) {
+        var insertion = this.insertions[range.startCol] = 
+                this.insertions[range.startCol] || [];
+
+        if (typeof(this.lines[range.startRow]) === 'string')
+            this.lines[range.startRow] = this.lines[range.startRow].split('');
+
+        insertion.push({ range: range, text: text });
+    },
+
+    /**
+     * joins the first and last line of a range and deletes the last line
+     * @param {Range} range - a range to join
+     */
+    joinLines: function (range) {
+        var lines     = this.getLines(range),
+            firstLine = lines[range.startRow],
+            lastLine  = lines[range.endRow];
+
+        if (firstLine === lastLine)
+            return;
+
+        // each instead of concat to maintain reference
+        _.each(lastLine, function (col) {
+            firstLine.push(col);
+        });
+
+        this.deleteLines(range.endRow);
+    },
+
+    /**
+     * iterates backwards through insertions for each lines, 
+     * splitting and adding new lines along the way
+     */
+    makeInsertions: function () {
+        var self = this,
+            insertionsArr = _.map(this.insertions, function (insertions, lineIdx) {
+                return { lineIdx: lineIdx, insertions: insertions };
+            });
+
+        insertionsArr.sort(function (a, b) {
+            return b.range.startRow - a.range.startRow;
+        });
+
+        console.log(insertionsArr);
+
+        _.each(insertionsArr, function (insertions) {
+            var offset = 0;
+
+            insertions = insertions.insertions;
+
+            // sort backwards
+            insertions.sort(function (a, b) { 
+                return b.range.startCol - a.range.startCol;
+            });
+
+            // split and add lines
+            _.each(insertions, function (insertion, lineIdx) {
+                var newLines       = insertion.text.split('\n'),
+                    newLinesLength = newLines.length,
+                    firstLine      = newLines.shift() || '',
+                    lastLine       = newLines.pop()   || '',
+                    splitIdx       = insertion.range.startCol;
+
+                self.lines[lineIdx] = self.lines[lineIdx]
+                    .slice(0, splitIdx)
+                    .concat(firstLine)
+                    .concat(lastLine)
+                    .concat(self.lines[lineIdx].slice(splitIdx));
+
+                if (newLinesLength > 1) {
+                    self.splitLine(lineIdx, splitIdx);
+                    self.addLines(newLines, lineIdx);
+                }
+            });
+        });
+    },
+
+    /**
+     * adds all new lines in the newLines object to the lines array for commit
+     */
+    makeNewLines: function () {
+        var self        = this,
+            offset      = 0,
+            newLinesArr = _.map(this.newLines, function (lines, lineNumber) {
+                return { lineNumber: parseInt(lineNumber), lines: lines };
+            });
+
+        newLinesArr.sort(function (a, b) { return a.lineNumber - b.lineNumber; });
+
+        _.each(newLinesArr, function (newLinesObj) {
+            var idx = newLinesObj.lineNumber + offset;
+
+            _.each(newLinesObj.lines, function (line) {
+                if (!Array.isArray(line))
+                    line = line.split('');
+
+                line.isNew = true;
+            });
+
+            self.lines = self.lines.slice(0, idx).concat(lines).concat(self.lines.slice(idx));
+
+            offset += newLinesObj.lines.length;
+        });
     },
 
     replaceRange: function (srcRanges, destRange) {
@@ -128,5 +350,18 @@ $.extend(HTG.File.prototype, {
         _.each(lines, function (line, lineNumber) {
             self.lines[lineNumber] = line.join('');
         });
+    },
+
+    /**
+     * splits line at given index
+     * @param {int} lineIdx  - index of lineIdx
+     * @param {int} splitIdx - index at which to split
+     */
+    splitLine: function (lineIdx, splitIdx) {
+        if (typeof(this.lines[lineIdx]) === 'string')
+            this.lines[lineIdx] = this.lines[lineIdx].split('');
+
+        this.lines[lineIdx] = this.lines[lineIdx].slice(0, splitIdx);
+        this.addLine(this.lines[lineIdx].slice(splitIdx));
     }
 });

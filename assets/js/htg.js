@@ -94,13 +94,13 @@ window.HTG = window.HTG || (function () {
 
             this.$code.html(text);
             // while (i++ < 30) this.$code.append('\n');
-            this.renumber();
 
             hljs.highlightBlock(this.$code[0]);
             this.setConstants();
             if (this.language)
                 this.file.buildWordList(this.language);
             // this.state.save();
+            this.renumber();
         },
 
         makeSuggestions: function () {
@@ -127,12 +127,19 @@ window.HTG = window.HTG || (function () {
             $row.removeClass('hljs');
         },
 
+        reload: function () {
+            var diff = this.file.commit();
+
+            console.log(diff);
+            this.loadFromString(this.file.lines.join('\n'));
+        },
+
         removeLines: function (lineNumbers) {
             var self = this;
 
             _.each(lineNumbers, function (lineNumber) {
                 var $row = self.$('span[data-line-index="'+lineNumber+'"]'),
-                    $break = $row.next('.htg-break');;
+                    $break = $row.next('.htg-break');
 
                 $row.remove();
                 $break.remove();
@@ -192,7 +199,7 @@ window.HTG = window.HTG || (function () {
             if (this.$overlay.width() < this.$pre.width())
                 this.$overlay.width(this.$pre.width());
 
-            this.$overlay.height(this.$code.height());
+            this.$overlay.height(this.$code.height() + (2 * this.consts.adjustedTop));
         },
 
         selectFile: function () {
