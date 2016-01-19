@@ -53,7 +53,6 @@ $.extend(HTG.Controller.prototype, {
                 diff;
 
             this.htg.file.deleteRanges(this.selection.getRanges());
-            diff = this.htg.file.commit();
             this.clearSelection(false);
             this.htg.reload();
         },
