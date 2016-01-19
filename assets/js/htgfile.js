@@ -231,14 +231,12 @@ $.extend(HTG.File.prototype, {
     makeInsertions: function () {
         var self = this,
             insertionsArr = _.map(this.insertions, function (insertions, lineIdx) {
-                return { lineIdx: lineIdx, insertions: insertions };
+                return { lineIdx: parseInt(lineIdx), insertions: insertions };
             });
 
         insertionsArr.sort(function (a, b) {
-            return b.range.startRow - a.range.startRow;
+            return b.lineIdx - a.lineIdx;
         });
-
-        console.log(insertionsArr);
 
         _.each(insertionsArr, function (insertions) {
             var offset = 0;
@@ -251,12 +249,13 @@ $.extend(HTG.File.prototype, {
             });
 
             // split and add lines
-            _.each(insertions, function (insertion, lineIdx) {
+            _.each(insertions, function (insertion) {
                 var newLines       = insertion.text.split('\n'),
                     newLinesLength = newLines.length,
                     firstLine      = newLines.shift() || '',
                     lastLine       = newLines.pop()   || '',
-                    splitIdx       = insertion.range.startCol;
+                    splitIdx       = insertion.range.startCol,
+                    lineIdx        = insertion.range.startRow;
 
                 self.lines[lineIdx] = self.lines[lineIdx]
                     .slice(0, splitIdx)

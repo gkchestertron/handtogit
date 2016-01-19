@@ -59,10 +59,23 @@ $.extend(HTG.Controller.prototype, {
         },
 
         paste: function () {
-            var srcRanges = this.htg.clipboard.last();
-            this.htg.file.replaceRanges(srcRanges, this.selection.ranges);
-            this.redrawSelectedRows();
-            this.selection.clear();
+            var srcRanges  = this.htg.clipboard.last(),
+                destRanges = this.selection.getRanges(),
+                srcIdx = 0;
+
+            this.htg.file.deleteRanges(destRanges);
+
+            _.each(destRanges, function (destRange) {
+                var text = srcRanges[srcIdx++].string;
+
+                this.htg.file.insert(destRange, text);
+
+                if (srcIdx === srcRanges.length)
+                    srcIdx = 0;
+            });
+
+            this.clearSelection(false);
+            this.htg.reload();
         },
 
         selectLines: function () {
@@ -301,8 +314,6 @@ $.extend(HTG.Controller.prototype, {
     },
 
     resetSelectionFlags: function () {
-        this.add = false;
-        this.htg.$('[data-handler="toggleAdd"]').removeClass('htg-key-active');
         this.remove = false;
         this.htg.$('[data-handler="toggleRemove"]').removeClass('htg-key-active');
         this.block = false;

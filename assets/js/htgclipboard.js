@@ -14,7 +14,7 @@ $.extend(HTG.Clipboard.prototype, {
         return this.selections.pop();
     },
 
-    push: function (string) {
-        this.selections.push(string);
+    push: function (selection) {
+        this.selections.push(selection);
     }
 });

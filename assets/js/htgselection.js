@@ -48,28 +48,16 @@ $.extend(HTG.Selection.prototype, {
     },
 
     copy: function () {
-        var lines = $.extend(true, {}, this.getLines()),
+        var ranges = $.extend(true, [], this.getRanges()),
             file  = this.htg.file,
             colOffset,
             rowOffset;
 
-        _.each(lines, function (line, lineNumber) {
-            _.each(line, function (range) {
-                if (colOffset === undefined)
-                    colOffset = range.startCol;
-
-                if (rowOffset === undefined)
-                    rowOffset = range.startRow;
-
-                range.string = file.getString(range);
-                range.startCol -= colOffset;
-                range.endCol -= colOffset;
-                range.startRow -= rowOffset;
-                range.endRow   -= rowOffset;
-            });
+        _.each(ranges, function (range) {
+            range.string = file.getString(range);
         });
 
-        return lines;
+        return ranges;
     },
 
     getLineNumbers: function () {
