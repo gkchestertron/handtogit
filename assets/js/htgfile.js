@@ -103,7 +103,7 @@ $.extend(HTG.File.prototype, {
             startCol, 
             endCol;
 
-        ranges = this.array(ranges);
+        ranges = $.extend(true, [], this.array(ranges));
 
         ranges.sort(function (a, b) {
             return b.startRow - a.startRow;

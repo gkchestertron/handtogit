@@ -65,9 +65,11 @@ $.extend(HTG.Controller.prototype, {
             this.htg.file.deleteRanges(destRanges);
 
             _.each(destRanges, function (destRange) {
-                var text = srcRanges[srcIdx++].string;
+                var text = srcRanges[srcIdx].string;
 
                 this.htg.file.insert(destRange, text);
+
+                srcIdx++;
 
                 if (srcIdx === srcRanges.length)
                     srcIdx = 0;
@@ -290,6 +292,8 @@ $.extend(HTG.Controller.prototype, {
 
         if (string)
             this.htg.loadFromString(string, false);
+        else
+            this.htg.flash();
     },
 
     redrawSelectedRows: function () {
@@ -371,6 +375,8 @@ $.extend(HTG.Controller.prototype, {
 
         if (string)
             this.htg.loadFromString(string, false);
+        else
+            this.htg.flash();
     },
     
     updateRange: function () {
