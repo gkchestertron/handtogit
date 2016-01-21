@@ -109,6 +109,9 @@ $.extend(HTG.Controller.prototype, {
                 destRanges = this.selection.getRanges(),
                 srcIdx = 0;
 
+            if (!srcRanges)
+                return;
+
             this.htg.file.deleteRanges(destRanges);
 
             _.each(destRanges, function (destRange) {
@@ -388,6 +391,7 @@ $.extend(HTG.Controller.prototype, {
          */
         end: function (event) {
             this.endPoint = this.getTouchPoint(event);
+            this.actionDirection = this.getActionDirection();
 
             if (this.hold) {
                 this.setInsert();
@@ -447,7 +451,7 @@ $.extend(HTG.Controller.prototype, {
             _.each(line, function (insertRange, idx) {
                 insertRange.endCol   = 
                     insertRange.startCol = 
-                    insertRange.startCol + idx;
+                    insertRange.startCol + (idx * chr.length);
                 self.htg.file.insert(insertRange, chr);
                 self.htg.reload();
                 insertRange.endCol   = 
@@ -515,13 +519,15 @@ $.extend(HTG.Controller.prototype, {
      * puts the controller into insert mode and sets a new inser range
      */
     setInsert: function () {
-        var ranges = this.selection.getInsertRanges();
+        var left = this.actionDirection === 'left',
+            ranges = this.selection.getInsertRanges(left);
 
         this.mode = 'insert';
 
         if (ranges) {
             this.insertRanges = ranges;
-            this.actions.deleteSelection.call(this);
+            if (left)
+                this.actions.deleteSelection.call(this);
         }
         else {
             this.insertRanges = {};

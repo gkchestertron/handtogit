@@ -85,7 +85,7 @@ $.extend(HTG.Selection.prototype, {
         return ranges;
     },
 
-    getInsertRanges: function () {
+    getInsertRanges: function (del) {
         var ranges = this.getRanges(),
             result = {};
 
@@ -110,12 +110,14 @@ $.extend(HTG.Selection.prototype, {
             });
 
             // adjust for length of previous range (because it is being removed
-            _.each(line, function (range, idx) {
-                var prevLine = idx > 0 && line[idx - 1];
+            if (del) {
+                _.each(line, function (range, idx) {
+                    var prevLine = idx > 0 && line[idx - 1];
 
-                if (prevLine)
-                    range.endCol = range.startCol = range.startCol - prevLine.length;
-            });
+                    if (prevLine)
+                        range.endCol = range.startCol = range.startCol - prevLine.length;
+                });
+            }
         });
 
         return result;
@@ -174,7 +176,7 @@ $.extend(HTG.Selection.prototype, {
             ranges  = [];
 
         _.each(this.ranges, function (range) {
-            if (range.inverse)
+            if (range.inverse || range.block)
                 overlap = true;
         });
 
