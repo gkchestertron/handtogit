@@ -75,7 +75,9 @@ window.HTG = window.HTG || (function () {
                 _.each(line, function (insertRange) {
                     var row     = insertRange.startRow,
                         col     = insertRange.startCol,
-                        top     = self.get$row(row).offset().top,
+                        top     = self.get$row(row).offset().top + self.$pre.scrollTop(),
+                        left    =  (((col + 1) * self.consts.fontWidth) + 
+                                    self.consts.adjustedLeft)
                         $cursor = $('<span class="htg-cursor"> </span>'); 
 
                     if (col < 0)
@@ -83,8 +85,7 @@ window.HTG = window.HTG || (function () {
                         
                     $cursor.css({
                         top: top,
-                        left: (((col + 1) * self.consts.fontWidth) + 
-                               self.consts.adjustedLeft)
+                        left: (((col + 1) * self.consts.fontWidth) + self.consts.adjustedLeft)
                     });
 
                     self.$cursors.push($cursor);
@@ -340,7 +341,6 @@ window.HTG = window.HTG || (function () {
             var border      = this.$code.css('border-width'),
                 paddingTop  = this.$code.css('padding-top'),
                 paddingLeft = this.$code.css('padding-left'),
-                offset      = this.$code.offset(),
                 numberWidth = this.file.lines.length.toString().length,
                 adjustment;
 
@@ -361,9 +361,9 @@ window.HTG = window.HTG || (function () {
 
             // add in adjustment for border and padding
             this.consts.numberWidth  = numberWidth;
-            this.consts.adjustedLeft = adjustment + 1;
-            this.consts.adjustedTop  = offset.top  + HTG.stripPx(border) + HTG.stripPx(paddingTop);
-            this.consts.rowHeight = (this.$code.height())/(this.file.lines.length)
+            this.consts.adjustedLeft = adjustment;
+            this.consts.adjustedTop  = HTG.stripPx(border) + HTG.stripPx(paddingTop);
+            this.consts.rowHeight    = (this.$code.height())/(this.file.lines.length);
         },
 
         /**
