@@ -14,14 +14,7 @@ window.HTG = window.HTG || (function () {
             { occurance: 2, suggestion: 'suggestions' },
         ],
         this.setListeners();
-        this.loadFromString(
-        "// PhantomJS doesn't support bind yet                                        \n" +
-        "Function.prototype.bind = Function.prototype.bind || function (thisp) {\n" +
-        "    var fn = this;\n" +
-        "    return function () {\n" +
-        "        return fn.apply(thisp, arguments);\n" +
-        "    };\n" +
-        "};\n");
+        this.loadWelcomeMessage();
         this.setLanguage('javascript');
         this.clipboard  = new HTG.Clipboard(this);
         this.controller = new HTG.Controller(this);
@@ -202,6 +195,22 @@ window.HTG = window.HTG || (function () {
                 // self.$topBar.html(file.name); // TODO need to show filename somewhere 
 
             this.renumber();
+        },
+
+        loadWelcomeMessage: function () {
+            this.loadFromString(
+            "/*"+
+            "* htg is a modular text editor for mobile devices inspired by vim.\n"+
+            "* ----\n"+
+            "* it's all about the gestures:\n"+
+            "*/\n\n"+
+            "// PhantomJS doesn't support bind yet                                        \n" +
+            "Function.prototype.bind = Function.prototype.bind || function (thisp) {\n" +
+            "    var fn = this;\n" +
+            "    return function () {\n" +
+            "        return fn.apply(thisp, arguments);\n" +
+            "    };\n" +
+            "};\n");
         },
 
         makeSuggestions: function () {
