@@ -183,8 +183,9 @@ window.HTG = window.HTG || (function () {
             this.file = new HTG.File(fileString);
 
             text = _.map(this.file.lines, function (line, idx) {
+
                 return '<span class="htg-editor-row" data-line-index="' + idx + '">' + 
-                        HTG.htmlConvert(line, 'html') + '</span>';
+                        (HTG.htmlConvert(line, 'html') || ' ') + '</span>';
             }).join('<span class="htg-break">\n</span>');
 
             this.$code.html(text);

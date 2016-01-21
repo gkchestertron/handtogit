@@ -508,7 +508,7 @@ $.extend(HTG.Controller.prototype, {
      * puts the controller into insert mode and sets a new inser range
      */
     setInsert: function () {
-        var left = this.actionDirection === 'left',
+        var left   = this.actionDirection === 'left',
             ranges = this.selection.getInsertRanges(left);
 
         this.mode = 'insert';
@@ -520,6 +520,8 @@ $.extend(HTG.Controller.prototype, {
         }
         else {
             this.insertRanges = {};
+            if (this.startPoint.col >= this.htg.file.lines[this.startPoint.row].length)
+                this.startPoint.col = this.htg.file.lines[this.startPoint.row].length;
             this.insertRanges[this.startPoint.row] = [new HTG.Range(this.startPoint, this.startPoint)];
         }
 
