@@ -91,6 +91,8 @@ window.HTG = window.HTG || (function () {
                     self.$pre.append($cursor);
                 });
             });
+
+            this.scrollToCursor();
         },
 
         /**
@@ -301,6 +303,24 @@ window.HTG = window.HTG || (function () {
                 this.$overlay.width(this.$pre.width());
 
             this.$overlay.height(this.$code.height() + (2 * this.consts.adjustedTop));
+        },
+
+        scrollToCursor: function () {
+            if (!this.$cursors.length)
+                return;
+
+            var offset    = this.$cursors[0].offset(),
+                preHeight = this.$pre.height(),
+                preWidth  = this.$pre.width(),
+                outOfBounds = (offset.top < 0         || 
+                               offset.top > preHeight || 
+                               offset.left < 0        ||
+                               offset.left > preWidth);
+
+            if (outOfBounds) {
+                this.$pre.scrollLeft(offset.left + this.$pre.scrollLeft() - preWidth/3);
+                this.$pre.scrollTop(offset.top   + this.$pre.scrollTop()  - preHeight/3);
+            }
         },
 
         /**

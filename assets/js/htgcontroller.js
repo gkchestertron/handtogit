@@ -397,7 +397,6 @@ $.extend(HTG.Controller.prototype, {
         end: function (event) {
             this.endPoint = this.getTouchPoint(event);
             this.actionDirection = this.getActionDirection();
-            console.log(this.actionType, this.actionLevel, this.actionDirection)
             this.callAction();
             this.selecting = false;
         }
