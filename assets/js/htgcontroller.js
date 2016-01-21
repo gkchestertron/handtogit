@@ -17,33 +17,50 @@ $.extend(HTG.Controller.prototype, {
      * @namespace
      */
     actionMap: {
-        line: {
-            primary: {
-                drag : 'selectRange',
-                tap  : 'selectWord'
+        select: {
+            line: {
+                primary: {
+                    drag : 'selectRange',
+                    tap  : 'selectWord'
+                },
+
+                secondary: {
+                    left  : 'deleteSelection',
+                    right : 'paste',
+                    up    : 'findPrev',
+                    down  : 'findNext',
+                    hold  : 'moveSelection',
+                    tap   : 'copySelection'
+                },
+
+                hold: {
+                    tap : 'setInsert'
+                }
             },
 
-            secondary: {
-                left  : 'deleteSelection',
-                right : 'paste',
-                up    : 'findPrev',
-                down  : 'findNext',
-                hold  : 'moveSelection',
-                tap   : 'copySelection'
-            },
-
-            hold: {
-                tap : 'setInsert'
+            lineNumber: {
+                primary: {
+                    left  : 'deleteLines',
+                    right : 'replaceLines',
+                    up    : 'openNewLineAbove',
+                    down  : 'openNewLineBelow',
+                    tap   : 'selectLines'
+                }
             }
         },
 
-        lineNumber: {
-            primary: {
-                left  : 'deleteLines',
-                right : 'replaceLines',
-                up    : 'openNewLineAbove',
-                down  : 'openNewLineBelow',
-                tap   : 'selectLines'
+        insert: {
+            line: {
+                primary: {
+                    tap: 'setInsert'
+                },
+                secondary: {}
+
+            },
+
+            lineNumber: {
+                primary: {},
+                secondary: {}
             }
         }
     },
@@ -132,6 +149,7 @@ $.extend(HTG.Controller.prototype, {
                 this.endPoint.col   = lastLine.length - 1;
             }
 
+            this.updateCurrentRange();
             this.highlightRanges();
         },
 
@@ -184,29 +202,46 @@ $.extend(HTG.Controller.prototype, {
             this.endPoint.col   = end;
             this.updateCurrentRange();
             this.highlightRanges();
+        },
+
+        setInsert: function () {
+            this.setInsert();
         }
     },
 
     /** 
      * backspaces when in insert mode
+     * @param {bool} delete - whether to delete instead
      */
-    backspace: function () {
+    backspace: function (del) {
+        var self   = this,
+            offset = del ? 0 : 1;
+
         if (this.mode !== 'insert')
             return;
 
         // TODO handle tabs
-        this.insertRange.startCol = this.insertRange.endCol = this.insertRange.endCol - 1;
-        this.htg.file.deleteRanges(this.insertRange);
+        _.each(this.insertRanges, function (line) {
+            _.each(line, function (insertRange, idx) {
+                insertRange.endCol = 
+                    insertRange.startCol = 
+                    insertRange.startCol - offset;
+                    self.htg.file.deleteRanges(insertRange);
+
+                insertRange.endCol = 
+                    insertRange.startCol = 
+                    insertRange.startCol - idx;
+            });
+        });
         this.htg.reload();
         this.selection.clear();
-
     },
 
     /**
      * calls an action based on the controller's current action type, level and direction
      */
     callAction: function () {
-        var funcName = this.actionMap[this.actionType][this.actionLevel][this.actionDirection];
+        var funcName = this.actionMap[this.mode][this.actionType][this.actionLevel][this.actionDirection];
         if (!this.scrolling && funcName && this.actions[funcName])
             this.actions[funcName].apply(this, arguments);
     },
@@ -227,8 +262,8 @@ $.extend(HTG.Controller.prototype, {
      */
     escape: function () {
         this.mode = 'select';
-        delete this.insertRange;
-        this.htg.$cursor && this.htg.$cursor.remove();
+        delete this.insertRanges;
+        this.htg.removeCursors();
         this.clearSelection();
         this.resetActionFlags();
         this.htg.hideKeyboard();
@@ -401,17 +436,26 @@ $.extend(HTG.Controller.prototype, {
      * @param {string} chr - a char or chars to insert
      */
     insert: function (chr, cursorOffset) {
+        var self = this;
+
         if (this.mode !== 'insert')
             return;
 
         cursorOffset = cursorOffset || 0;
 
-        this.htg.file.insert(this.insertRange, chr);
-        this.htg.reload();
-        this.insertRange.startCol   = 
-            this.insertRange.endCol = 
-            this.insertRange.endCol + chr.length - cursorOffset;
-        this.htg.drawCursor();
+        _.each(this.insertRanges, function (line) {
+            _.each(line, function (insertRange, idx) {
+                insertRange.endCol   = 
+                    insertRange.startCol = 
+                    insertRange.startCol + idx;
+                self.htg.file.insert(insertRange, chr);
+                self.htg.reload();
+                insertRange.endCol   = 
+                    insertRange.startCol = 
+                    insertRange.startCol + chr.length - cursorOffset;
+            });
+        });
+        this.htg.drawCursors();
     },
 
     /**
@@ -471,10 +515,21 @@ $.extend(HTG.Controller.prototype, {
      * puts the controller into insert mode and sets a new inser range
      */
     setInsert: function () {
+        var ranges = this.selection.getInsertRanges();
+
         this.mode = 'insert';
+
+        if (ranges) {
+            this.insertRanges = ranges;
+            this.actions.deleteSelection.call(this);
+        }
+        else {
+            this.insertRanges = {};
+            this.insertRanges[this.startPoint.row] = [new HTG.Range(this.startPoint, this.startPoint)];
+        }
+
         this.htg.showKeyboard();
-        this.insertRange = new HTG.Range(this.startPoint, this.startPoint);
-        this.htg.drawCursor();
+        this.htg.drawCursors();
     },
 
     /**

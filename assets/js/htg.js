@@ -63,24 +63,34 @@ window.HTG = window.HTG || (function () {
             this.$keyboard.hide();
         },
 
-        drawCursor: function () {
+        drawCursors: function () {
+            var self = this;
+
             if (this.controller.mode !== 'insert')
                 return;
 
-            var row = this.controller.insertRange.startRow,
-                col = this.controller.insertRange.startCol,
-                top = this.get$row(row).offset().top;
+            this.removeCursors();
 
-                console.log(this.consts.fontWidth, this.consts.adjustedLeft, this.$pre.scrollLeft());
-            this.$cursor && this.$cursor.remove();
-            this.$cursor = $('<span class="htg-cursor"> </span>');
-                
-            this.$cursor.css({
-                top: top,
-                left: (((col + 1) * this.consts.fontWidth) + this.consts.adjustedLeft)
+            _.each(this.controller.insertRanges, function (line) {
+                _.each(line, function (insertRange) {
+                    var row     = insertRange.startRow,
+                        col     = insertRange.startCol,
+                        top     = self.get$row(row).offset().top,
+                        $cursor = $('<span class="htg-cursor"> </span>'); 
+
+                    if (col < 0)
+                        return self.flash();
+                        
+                    $cursor.css({
+                        top: top,
+                        left: (((col + 1) * self.consts.fontWidth) + 
+                               self.consts.adjustedLeft)
+                    });
+
+                    self.$cursors.push($cursor);
+                    self.$pre.append($cursor);
+                });
             });
-
-            this.$pre.append(this.$cursor);
         },
 
         /**
@@ -218,7 +228,7 @@ window.HTG = window.HTG || (function () {
                 string = this.file.lines.join('\n');
 
             this.loadFromString(string);
-            this.drawCursor();
+            this.drawCursors();
         },
 
         removeLines: function (lineNumbers) {
@@ -260,6 +270,14 @@ window.HTG = window.HTG || (function () {
 
             // resize overlay
             this.resizeOverlay();
+        },
+
+        removeCursors: function () {
+            _.each(this.$cursors, function ($cursor) {
+                $cursor.remove();
+            });
+
+            this.$cursors = [];
         },
 
         removeSuggestions: function () {
@@ -409,14 +427,25 @@ window.HTG = window.HTG || (function () {
          * @param {string} dir - the action direction
          */
         type: function (chr, dir) {
-            if (chr === 'space')
-                chr = ' ';
+            if (chr === 'space') {
+                if (dir === 'right')
+                    chr = '    ';
+                else
+                    chr = ' ';
+            }
+            else if (chr === '&#x2190;') {
+                if (dir === 'right')
+                    return this.controller.backspace(true);
+                else
+                    return this.controller.backspace();
+            }
             else
                 chr = this.typeModifiers[dir](chr);
 
-            if (chr === '&#x2190;')
-                this.controller.backspace();
-            else if (chr !== '==' && chr.length === 2 && dir === 'up')
+            
+            if (chr !== '==' && chr.length === 2 && dir === 'up')
+                this.controller.insert(chr, 1);
+            else if (chr === '</>')
                 this.controller.insert(chr, 1);
             else
                 this.controller.insert(chr);
@@ -438,11 +467,14 @@ window.HTG = window.HTG || (function () {
             },
 
             right: function (chr) {
+                if (chr === '==')
+                    return '===';
+
                 if (chr.length === 2)
                     return chr[1];
 
-                if (chr === '==')
-                    return '===';
+                if (chr === ' ')
+                    return '    ';
 
                 return chr + chr;
             },

@@ -85,6 +85,42 @@ $.extend(HTG.Selection.prototype, {
         return ranges;
     },
 
+    getInsertRanges: function () {
+        var ranges = this.getRanges(),
+            result = {};
+
+        // return false if no ranges
+        if (!ranges.length)
+            return false;
+        
+        // create new ranges with zero length by line
+        _.each(ranges, function (range) {
+            range = $.extend(true, {}, range);
+            range.endCol = range.startCol;
+            range.endRow = range.startRow;
+
+            result[range.startRow] = result[range.startRow] || [];
+            result[range.startRow].push(range);
+        });
+
+        // sort ranges by col
+        _.each(result, function (line) {
+            line.sort(function (a, b) {
+                return a.startCol - b.startCol;
+            });
+
+            // adjust for length of previous range (because it is being removed
+            _.each(line, function (range, idx) {
+                var prevLine = idx > 0 && line[idx - 1];
+
+                if (prevLine)
+                    range.endCol = range.startCol = range.startCol - prevLine.length;
+            });
+        });
+
+        return result;
+    },
+
     /**
      * returns the line numbers of the current selection
      * @return {int[]}
@@ -112,7 +148,14 @@ $.extend(HTG.Selection.prototype, {
                 var nextCol = line[idx + 1];
 
                 if (nextCol - col > 1 || idx === line.length - 1) {
-                    lines[lineIdx].push({ startRow: lineIdx, endRow: lineIdx, startCol: startCol, endCol: col });
+                    lines[lineIdx].push(new HTG.Range({
+                        row: lineIdx, 
+                        col: startCol
+                    }, {
+                        row: lineIdx,
+                        col: col
+                    }));
+
                     startCol = nextCol;
                 }
             });

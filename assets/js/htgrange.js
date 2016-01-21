@@ -108,5 +108,6 @@ $.extend(HTG.Range.prototype, {
         this.startRow = startRow;
         this.endCol   = endCol;
         this.endRow   = endRow;
+        this.length   = endCol - startCol + 1;
     }
 });
