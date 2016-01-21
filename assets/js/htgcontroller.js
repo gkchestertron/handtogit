@@ -34,7 +34,8 @@ $.extend(HTG.Controller.prototype, {
                 },
 
                 hold: {
-                    tap : 'setInsert'
+                    tap : 'setInsert',
+                    left: 'setInsert'
                 }
             },
 
@@ -45,7 +46,9 @@ $.extend(HTG.Controller.prototype, {
                     up    : 'openNewLineAbove',
                     down  : 'openNewLineBelow',
                     tap   : 'selectLines'
-                }
+                },
+                secondary: {},
+                hold: {}
             }
         },
 
@@ -54,13 +57,14 @@ $.extend(HTG.Controller.prototype, {
                 primary: {
                     tap: 'setInsert'
                 },
-                secondary: {}
-
+                secondary: {},
+                hold: {}
             },
 
             lineNumber: {
                 primary: {},
-                secondary: {}
+                secondary: {},
+                hold: {}
             }
         }
     },
@@ -350,7 +354,7 @@ $.extend(HTG.Controller.prototype, {
                 // set hold flag in 200ms
                 setTimeout(function () {
                     if (!self.moved) 
-                        self.hold = true;
+                        self.actionLevel = 'hold';
                 }, 200);
             }
 
@@ -366,7 +370,8 @@ $.extend(HTG.Controller.prototype, {
          * @param {Event} event - the user-triggered event
          */
         move: function (event) {
-            if (!this.selecting) return;
+            if (!this.selecting) 
+                return;
 
             this.moved = true;
 
@@ -392,22 +397,7 @@ $.extend(HTG.Controller.prototype, {
         end: function (event) {
             this.endPoint = this.getTouchPoint(event);
             this.actionDirection = this.getActionDirection();
-
-            if (this.hold) {
-                this.setInsert();
-                return;
-            }
-
-            if (this.actionType === 'line') {
-                if (!this.moved && this.actionLevel === 'primary')
-                    this.actionDirection = 'tap';
-                else if (this.actionLevel === 'secondary')
-                    this.actionDirection = this.getActionDirection();
-            }
-
-            if (this.actionType === 'lineNumber')
-                this.actionDirection = this.getActionDirection();
-
+            console.log(this.actionType, this.actionLevel, this.actionDirection)
             this.callAction();
             this.selecting = false;
         }
