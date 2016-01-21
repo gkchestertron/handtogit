@@ -23,8 +23,9 @@ window.HTG = window.HTG || (function () {
         "    };\n" +
         "};\n");
         this.setLanguage('javascript');
+        this.clipboard  = new HTG.Clipboard(this);
         this.controller = new HTG.Controller(this);
-        this.clipboard = new HTG.Clipboard(this);
+        this.dictionary = new HTG.Dictionary(this);
     };
     
     $.extend(HTG.prototype, {
