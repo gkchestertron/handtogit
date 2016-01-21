@@ -21,7 +21,8 @@ $.extend(HTG.Controller.prototype, {
             line: {
                 primary: {
                     drag : 'selectRange',
-                    tap  : 'selectWord'
+                    tap  : 'selectWord',
+                    left : 'joinRows'
                 },
 
                 secondary: {
@@ -101,6 +102,23 @@ $.extend(HTG.Controller.prototype, {
                 diff;
 
             this.htg.file.deleteRanges(this.selection.getRanges());
+            this.clearSelection(false);
+            this.htg.reload();
+        },
+
+        joinRows: function () {
+            var range = new HTG.Range(this.startPoint, this.endPoint),
+                lines = this.htg.file.getLines(range),
+                line  = lines[this.startPoint.row];
+
+            // return if last line
+            if (range.startRow > this.htg.file.lines.length - 2)
+                return;
+
+            range.startCol = line.length - 1;
+            range.endRow++;
+            range.endCol = 0;
+            this.htg.file.joinLines(range);
             this.clearSelection(false);
             this.htg.reload();
         },
@@ -351,11 +369,11 @@ $.extend(HTG.Controller.prototype, {
                 else if (!this.add && !this.remove && this.startPoint.chr)
                     this.clearSelection();
 
-                // set hold flag in 200ms
+                // set hold flag in 150ms
                 setTimeout(function () {
                     if (!self.moved) 
                         self.actionLevel = 'hold';
-                }, 200);
+                }, 150);
             }
 
             if (this.actionType === 'lineNumber') {
@@ -378,7 +396,7 @@ $.extend(HTG.Controller.prototype, {
             this.endPoint = this.getTouchPoint(event);
 
             // block scrolling
-            if (this.actionType === 'lineNumber' || this.startPoint.chr && HTG.getPageY(event) < $(window).height()/2)
+            if (HTG.getPageY(event) < $(window).height()/2)
                 event.preventDefault();
             else
                 this.scrolling = true
@@ -396,7 +414,8 @@ $.extend(HTG.Controller.prototype, {
          */
         end: function (event) {
             this.endPoint = this.getTouchPoint(event);
-            this.actionDirection = this.getActionDirection();
+            if (this.actionDirection !== 'drag')
+                this.actionDirection = this.getActionDirection();
             this.callAction();
             this.selecting = false;
         }
