@@ -1,12 +1,21 @@
 HTG = window.HTG || {};
 
+/**
+ * creates the controller class for handling selection and input
+ * @param {HTG} htg - the htg instance to attach the controller to
+ */
 HTG.Controller = function (htg) {
-    this.htg = htg;
+    this.htg       = htg;
+    this.mode      = 'select';
     this.selection = new HTG.Selection(htg);
     this.setListeners();
 };
 
 $.extend(HTG.Controller.prototype, {
+    /**
+     * a map of actions to callbacks based on action type, level and direction
+     * @namespace
+     */
     actionMap: {
         line: {
             primary: {
@@ -21,6 +30,10 @@ $.extend(HTG.Controller.prototype, {
                 down  : 'findNext',
                 hold  : 'moveSelection',
                 tap   : 'copySelection'
+            },
+
+            hold: {
+                tap : 'setInsert'
             }
         },
 
@@ -35,12 +48,22 @@ $.extend(HTG.Controller.prototype, {
         }
     },
 
+    /**
+     * collection of action callbacks
+     * @namespace
+     */
     actions: {
+        /**
+         * copies the current selection to the clipboard
+         */
         copySelection: function () {
             this.htg.clipboard.push(this.selection.copy());
             this.htg.flash();
         },
 
+        /**
+         * deletes all lines in the current selection
+         */
         deleteLines: function () {
             var lineNumbers = this.selection.getLineNumbers();
             this.clearSelection(false);
@@ -48,6 +71,10 @@ $.extend(HTG.Controller.prototype, {
             this.htg.reload();
         },
 
+        /**
+         * deletes the current selection
+         */
+        //TODO handle block mode
         deleteSelection: function () {
             var self = this,
                 diff;
@@ -57,6 +84,9 @@ $.extend(HTG.Controller.prototype, {
             this.htg.reload();
         },
 
+        /**
+         * pastes the last thing on the clipboard into the current selection
+         */
         paste: function () {
             var srcRanges  = this.htg.clipboard.last(),
                 destRanges = this.selection.getRanges(),
@@ -79,6 +109,9 @@ $.extend(HTG.Controller.prototype, {
             this.htg.reload();
         },
 
+        /**
+         * extends selection to the beginning and end of all lines in the selection
+         */
         selectLines: function () {
             var lines = _.map(Object.keys(this.selection.lines), function (num) { return parseInt(num) }),
                 endRow,
@@ -102,13 +135,21 @@ $.extend(HTG.Controller.prototype, {
             this.highlightRanges();
         },
 
+        /**
+         * selects a range
+         */
         selectRange: function () {
             if (!this.htg.file.lines[this.endPoint.row] || this.endPoint.col < 0)
                 return;
 
+            this.updateCurrentRange();
             this.highlightRanges();
         },
 
+        /**
+         * selects a single word by searching for word boundaries in both directions
+         * from the original touchpoint
+         */
         selectWord: function () {
             var start        = this.startPoint.col,
                 end          = start,
@@ -141,16 +182,39 @@ $.extend(HTG.Controller.prototype, {
 
             this.startPoint.col = start;
             this.endPoint.col   = end;
+            this.updateCurrentRange();
             this.highlightRanges();
         }
     },
 
+    /** 
+     * backspaces when in insert mode
+     */
+    backspace: function () {
+        if (this.mode !== 'insert')
+            return;
+
+        // TODO handle tabs
+        this.insertRange.startCol = this.insertRange.endCol = this.insertRange.endCol - 1;
+        this.htg.file.deleteRanges(this.insertRange);
+        this.htg.reload();
+        this.selection.clear();
+
+    },
+
+    /**
+     * calls an action based on the controller's current action type, level and direction
+     */
     callAction: function () {
-        var funcName = this.actionMap[this.actionType][this.actionLevel][this.eventType];
-        if (funcName && this.actions[funcName])
+        var funcName = this.actionMap[this.actionType][this.actionLevel][this.actionDirection];
+        if (!this.scrolling && funcName && this.actions[funcName])
             this.actions[funcName].apply(this, arguments);
     },
 
+    /**
+     * clears out the selection, redraws the previously selected rows and removes 
+     * reference to the previously selected range
+     */
     clearSelection: function (redraw) {
         if (redraw !== false)
             this.redrawSelectedRows();
@@ -158,73 +222,22 @@ $.extend(HTG.Controller.prototype, {
         this.currentRange = undefined;
     },
 
+    /**
+     * handles escape key in top controls
+     */
     escape: function () {
+        this.mode = 'select';
+        delete this.insertRange;
+        this.htg.$cursor && this.htg.$cursor.remove();
         this.clearSelection();
         this.resetActionFlags();
-        this.resetSelectionFlags();
+        this.htg.hideKeyboard();
     },
 
-    handlers: {
-        start: function (event) {
-            this.resetActionFlags();
-            this.startPoint = this.getTouchPoint(event);
-            this.actionType = this.startPoint.col > -1 ? 'line' : 'lineNumber';
-            this.selecting  = true;
-
-            if (this.actionType === 'line' && !this.remove) {
-                if (this.selection.rangesContain(this.startPoint))
-                    this.actionLevel = 'secondary';
-                else if (!this.add && !this.remove && this.startPoint.chr)
-                    this.clearSelection();
-
-                // set hold flag in 200ms
-                setTimeout(function () {
-                    if (!this.moved) 
-                        this.hold = true;
-                }, 200);
-            }
-
-            if (this.actionType === 'lineNumber') {
-                if (!this.selection.linesContain(this.startPoint) && !this.add && !this.remove)
-                    this.clearSelection();
-            }
-        },
-
-        move: function (event) {
-            if (!this.selecting) return;
-
-            this.moved = true;
-
-            this.endPoint = this.getTouchPoint(event);
-
-            // block scrolling
-            if (this.actionType === 'lineNumber' || this.startPoint.chr)
-                event.preventDefault();
-
-            if (this.startPoint.chr && this.actionType === 'line' && this.actionLevel === 'primary')
-                this.eventType = 'drag';
-
-            this.callAction();
-        },
-
-        end: function (event) {
-            this.endPoint = this.getTouchPoint(event);
-
-            if (this.actionType === 'line') {
-                if (!this.moved && this.actionLevel === 'primary')
-                    this.eventType = 'tap';
-                else if (this.actionLevel === 'secondary')
-                    this.eventType = this.getActionDirection();
-            }
-
-            if (this.actionType === 'lineNumber')
-                this.eventType = this.getActionDirection();
-
-            this.callAction();
-            this.selecting = false;
-        }
-    },
-
+    /**
+     * gets the action direction based on the column difference between the current 
+     * range's start point and end point
+     */
     getActionDirection: function () {
         var x = this.endPoint.col - this.startPoint.col,
             y = this.endPoint.row - this.startPoint.row,
@@ -253,9 +266,14 @@ $.extend(HTG.Controller.prototype, {
         return maxDir;
     },
 
+    /**
+     * gets a touch point based on an event
+     * @param  {Event} event - the event triggered by some user action
+     * @return {object}      - and object representing the point of contact within the $code element
+     */
     getTouchPoint: function (event) {
-        var col   = HTG.getTextColumn(event),
-            row   = HTG.getTextRow(event),
+        var col   = this.htg.getTextColumn(event),
+            row   = this.htg.getTextRow(event),
             line  = this.htg.file.lines[row],
             chr   = line && line[col];
 
@@ -267,11 +285,102 @@ $.extend(HTG.Controller.prototype, {
         };
     },
 
+    /**
+     * handlers for basic touch events
+     * @namespace
+     */
+    handlers: {
+        /**
+         * handler for touchstart
+         * - sets the initial action and selection flags
+         * @param {Event} event - the user triggered event
+         */
+        start: function (event) {
+            var self = this;
+
+            this.resetActionFlags();
+            this.startPoint = this.getTouchPoint(event);
+            this.actionType = this.startPoint.col > -1 ? 'line' : 'lineNumber';
+            this.selecting  = true;
+
+            if (this.actionType === 'line' && !this.remove) {
+                if (this.selection.rangesContain(this.startPoint))
+                    this.actionLevel = 'secondary';
+                else if (!this.add && !this.remove && this.startPoint.chr)
+                    this.clearSelection();
+
+                // set hold flag in 200ms
+                setTimeout(function () {
+                    if (!self.moved) 
+                        self.hold = true;
+                }, 200);
+            }
+
+            if (this.actionType === 'lineNumber') {
+                if (!this.selection.linesContain(this.startPoint) && !this.add && !this.remove)
+                    this.clearSelection();
+            }
+        },
+
+        /** 
+         * handler for touchmove
+         * - sets the moved flag, among others and calls intermediate actions
+         * @param {Event} event - the user-triggered event
+         */
+        move: function (event) {
+            if (!this.selecting) return;
+
+            this.moved = true;
+
+            this.endPoint = this.getTouchPoint(event);
+
+            // block scrolling
+            if (this.actionType === 'lineNumber' || this.startPoint.chr && HTG.getPageY(event) < $(window).height()/2)
+                event.preventDefault();
+            else
+                this.scrolling = true
+
+            if (this.startPoint.chr && this.actionType === 'line' && this.actionLevel === 'primary')
+                this.actionDirection = 'drag';
+
+            this.callAction();
+        },
+
+        /**
+         * handles the touchend event
+         * - sets final flags and calls actions
+         * @param {Event} event - the user-triggered event
+         */
+        end: function (event) {
+            this.endPoint = this.getTouchPoint(event);
+
+            if (this.hold) {
+                this.setInsert();
+                return;
+            }
+
+            if (this.actionType === 'line') {
+                if (!this.moved && this.actionLevel === 'primary')
+                    this.actionDirection = 'tap';
+                else if (this.actionLevel === 'secondary')
+                    this.actionDirection = this.getActionDirection();
+            }
+
+            if (this.actionType === 'lineNumber')
+                this.actionDirection = this.getActionDirection();
+
+            this.callAction();
+            this.selecting = false;
+        }
+    },
+
+    /**
+     * highlights all ranges within the current selection
+     */
     highlightRanges: function () {
         var self = this;
 
         this.redrawSelectedRows();
-        this.updateRange();
 
         _.each(this.selection.getLines(), function (ranges, lineNumber) {
             var line = self.htg.file.lines[lineNumber],
@@ -287,6 +396,28 @@ $.extend(HTG.Controller.prototype, {
         });
     },
 
+    /**
+     * inserts a char at the start of the current insert Range
+     * @param {string} chr - a char or chars to insert
+     */
+    insert: function (chr, cursorOffset) {
+        if (this.mode !== 'insert')
+            return;
+
+        cursorOffset = cursorOffset || 0;
+
+        this.htg.file.insert(this.insertRange, chr);
+        this.htg.reload();
+        this.insertRange.startCol   = 
+            this.insertRange.endCol = 
+            this.insertRange.endCol + chr.length - cursorOffset;
+        this.htg.drawCursor();
+    },
+
+    /**
+     * reloads the file from the next saved state if any
+     */
+    //TODO implement diffs
     redo: function () {
         var string = this.htg.file.state.next();
 
@@ -296,6 +427,9 @@ $.extend(HTG.Controller.prototype, {
             this.htg.flash();
     },
 
+    /**
+     * redraws all rows in the current selection
+     */
     redrawSelectedRows: function () {
         var self  = this;
         
@@ -310,15 +444,22 @@ $.extend(HTG.Controller.prototype, {
         });
     },
 
+    /**
+     * resets the action flags for the next set of interactions
+     */
     resetActionFlags: function () {
-        this.moved            = false;
-        this.hold             = false;
-        this.currentRange     = undefined;
-        this.actionLevel      = 'primary';
-        this.eventType        = undefined;
+        this.moved           = false;
+        this.hold            = false;
+        this.scrolling       = false
+        this.currentRange    = undefined;
+        this.actionLevel     = 'primary';
+        this.actionDirection = undefined;
         delete this.endPoint;
     },
 
+    /**
+     * resets the selection flags for the next set of interactions
+     */
     resetSelectionFlags: function () {
         this.remove = false;
         this.htg.$('[data-handler="toggleRemove"]').removeClass('htg-key-active');
@@ -326,50 +467,74 @@ $.extend(HTG.Controller.prototype, {
         this.htg.$('[data-handler="toggleBlock"]').removeClass('htg-key-active');
     },
 
+    /**
+     * puts the controller into insert mode and sets a new inser range
+     */
+    setInsert: function () {
+        this.mode = 'insert';
+        this.htg.showKeyboard();
+        this.insertRange = new HTG.Range(this.startPoint, this.startPoint);
+        this.htg.drawCursor();
+    },
+
+    /**
+     * sets the listeners and builds the keyboards
+     */
     setListeners: function () {
         this.htg.$overlay.on('touchstart mousedown', this.handlers.start.bind(this));
         this.htg.$overlay.on('touchmove mousemove', this.handlers.move.bind(this));
         this.htg.$overlay.on('touchend', this.handlers.end.bind(this));
 
         this.topControls = new HTG.Keyboard(this, this.htg.$topControls, {
-            type:  '<', 
-            undo: '&#8634;', 
-            toggleRemove: '-', 
-            toggleBlock: '&#x2630;',
-            toggleAdd: '+',
-            redo: '&#8635;',
-            type2: ['>', '/'], 
-            escape: 'esc'
+            keys: [
+                [ '<', '&#8634;', '-', '&#x2630;', '+', '&#8635;', '>', null, '/', 'esc', ]
+            ],
+
+            handlers: {
+                default    : 'type',
+                '&#8634;'  : 'undo',
+                '-'        : 'toggleRemove',
+                '&#x2630;' : 'toggleBlock',
+                '+'        : 'toggleAdd',
+                '&#8635;'  : 'redo',
+                'esc'      : 'escape'
+            }
+
         });
     },
 
+    /**
+     * toggles the add flag and indicates it in the ui
+     */
     toggleAdd: function (event) {
         this.add = !this.add;
-        $(event.currentTarget).toggleClass('htg-key-active');
+        this.htg.$('[data-handler="toggleAdd"]').toggleClass('htg-key-active');
         this.remove = false;
         this.htg.$('[data-handler="toggleRemove"]').removeClass('htg-key-active');
     },
 
+    /**
+     * toggles the block flag and indicates it in the ui
+     */
     toggleBlock: function (event) {
         this.block = !this.block;
-        $(event.currentTarget).toggleClass('htg-key-active');
+        this.htg.$('[data-handler="toggleBlock"]').toggleClass('htg-key-active');
     },
 
+    /**
+     * toggles the remove flag and indicates it in the ui
+     */
     toggleRemove: function (event) {
         this.remove = !this.remove;
-        $(event.currentTarget).toggleClass('htg-key-active');
+        this.htg.$('[data-handler="toggleRemove"]').toggleClass('htg-key-active');
         this.add = false;
         this.htg.$('[data-handler="toggleAdd"]').removeClass('htg-key-active');
     },
 
-    type: function (event) {
-        console.log($(event.currentTarget).text());
-    },
-
-    type2: function (event) {
-        console.log($(event.currentTarget).text());
-    },
-
+    /**
+     * reloads from the previously saved state if any
+     */
+    //TODO implement diffs
     undo: function () {
         var string = this.htg.file.state.prev();
 
@@ -379,10 +544,13 @@ $.extend(HTG.Controller.prototype, {
             this.htg.flash();
     },
     
-    updateRange: function () {
+    /**
+     * updates the currentRange based on the current end point
+     */
+    updateCurrentRange: function () {
         if (!this.currentRange)
             this.currentRange = this.selection.addRange(this.startPoint, this.endPoint, this.block, this.remove);
         else
-            this.selection.updateRange(this.startPoint, this.endPoint, this.block, this.remove);
+            this.selection.updateCurrentRange(this.startPoint, this.endPoint, this.block, this.remove);
     }
 });

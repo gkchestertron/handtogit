@@ -1,7 +1,12 @@
 // shared util functions are saved as class methods
 window.HTG = window.HTG || {};
 
-// add highlight span to string based on indices
+/**
+ * adds highlights to a line of text
+ * @param  {string}  line - the line to highlight
+ * @param  {Range[]} highlights - an array of ranges to highlight
+ * @return {string}
+ */
 HTG.addHighlight = function (line, highlights) {
     var result = '',
         startIndex = 0;
@@ -21,7 +26,13 @@ HTG.addHighlight = function (line, highlights) {
     return result;
 };
 
-// benchmark any function in real time
+/**
+ * benchmark any given function inline
+ * @param {string}   msg     - message to log with run time
+ * @param {object}   context - context in which to call the function
+ * @param {function} func    - the function to call
+ * @param {array}    args    - arguments to pass to the function
+ */
 HTG.benchmark = function (msg, context, func, args) {
     var startTime = window.performance.now();
     var result = func.apply(context, args);
@@ -29,50 +40,52 @@ HTG.benchmark = function (msg, context, func, args) {
     return result;
 }
 
-// get text column
-HTG.getTextColumn = function (event) {
-    var $child  = $(event.currentTarget),
-        $parent = $child.parent(),
-        eventX  = event.pageX || 
-                  (event.originalEvent && 
-                   event.originalEvent.pageX) || 
-                  (event.originalEvent &&
-                   event.originalEvent.touches && 
-                   event.originalEvent.touches[0] && 
-                   event.originalEvent.touches[0].pageX) ||
-                  (event.originalEvent &&
-                   event.originalEvent.changedTouches && 
-                   event.originalEvent.changedTouches[0] && 
-                   event.originalEvent.changedTouches[0].pageX),
-        left = eventX - (HTG.consts.adjustedLeft - $parent.scrollLeft()),
-        col  = Math.floor(left/HTG.consts.fontWidth) - 1;
+/**
+ * returns an x or y coordinate of an event on the page
+ * @param {Event}  event - the user triggered event
+ * @param {string} coord - the coordinate you want - pageX or pageY
+ * @return {int}
+ */
+HTG.getPageCoord = function (event, coord) {
+    return event[coord] || 
+           (event.originalEvent && 
+           event.originalEvent[coord]) || 
+   
+           (event.originalEvent &&
+           event.originalEvent.touches && 
+           event.originalEvent.touches[0] && 
+           event.originalEvent.touches[0][coord]) ||
+   
+           (event.originalEvent &&
+           event.originalEvent.changedTouches && 
+           event.originalEvent.changedTouches[0] && 
+           event.originalEvent.changedTouches[0][coord]);
+}
 
-    return col;
-};
+/**
+ * returns the pageX value of an event
+ * @param  {Event}  event - the user triggered event
+ * @return {int}
+ */
+HTG.getPageX = function (event) {
+    return HTG.getPageCoord(event, 'pageX');
+}
 
-HTG.getTextRow = function (event) {
-    var eventY  = event.pageY || 
-                  (event.originalEvent && 
-                   event.originalEvent.pageY) || 
-                  (event.originalEvent &&
-                   event.originalEvent.touches && 
-                   event.originalEvent.touches[0] && 
-                   event.originalEvent.touches[0].pageY) ||
-                  (event.originalEvent &&
-                   event.originalEvent.changedTouches && 
-                   event.originalEvent.changedTouches[0] && 
-                   event.originalEvent.changedTouches[0].pageY),        
-        rowHeight    = HTG.consts.rowHeight,
-        rowNumber    = Math.floor(($('pre').scrollTop() + eventY - HTG.consts.adjustedTop)/rowHeight),
-        $suggestions = $('.htg-suggestion');
+/**
+ * returns the pageY value of an event
+ * @param  {Event}  event - the user triggered event
+ * @return {int}
+ */
+HTG.getPageY = function (event) {
+    return HTG.getPageCoord(event, 'pageY');
+}
 
-    if ($suggestions.length && $suggestions.offset().top < eventY)
-        rowNumber -= $suggestions.length;
-
-    return rowNumber;
-};
-
-// convert to and from html
+/**
+ * converts a string into html matching the text by replacing ampersands
+ * @param {string} string - the string to converts
+ * @param {string} dif    - the direction of the conversion (html, text)
+ * @return {string}
+ */
 HTG.htmlConvert = function (string, dir) {
     var replacements = {
         '&'     : '&amp;',
@@ -97,7 +110,13 @@ HTG.htmlConvert = function (string, dir) {
     return string;
 };
 
-//replace all instances with regex and object of replacements
+/**
+ * returns a string with all matches of a regex replaced with a given set of replacements
+ * @param  {string} string       - the string to manipulate
+ * @param  {RegExp} re           - the regex to match with
+ * @param  {object} replacements - replacement mapping
+ * @return {string}
+ */
 HTG.replaceAll = function (string, re, replacements) {
     var replacement, 
         match,
@@ -117,12 +136,19 @@ HTG.replaceAll = function (string, re, replacements) {
     return result;
 };
 
-// strip off px from css properties
+/**
+ * strips px off the end of css props
+ * @param {string} prop - the prop to strip
+ * @return {string}
+ */
 HTG.stripPx = function (prop) {
     return parseFloat(prop.slice(0, prop.length -2));
 };
 
-// full screen fill
+/**
+ * toggles full screen mode on devices with the api available
+ */
+//TODO make this move the htg instance take up the whole screen if it does not already - prob move to htg.js
 HTG.toggleFullScreen = function () {
     var doc = window.document;
     var docEl = doc.documentElement;

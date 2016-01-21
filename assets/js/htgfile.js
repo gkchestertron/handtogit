@@ -114,20 +114,21 @@ $.extend(HTG.File.prototype, {
                 startCol = 0;
                 endCol   = lines[row].length;
 
-                if (row === range.startRow)
+                if (row === range.startRow || range.block)
                     startCol = range.startCol;
 
-                if (row === range.endRow)
+                if (row === range.endRow || range.block)
                     endCol = range.endCol;
 
-                if (row > range.startRow && row < range.endRow)
+                if (row > range.startRow && row < range.endRow && !range.block)
                     self.deleteLines(row);
                 else
                     for (var col = startCol; col <= endCol; col++)
                         lines[row][col] = '';
             }
 
-            self.joinLines(range);
+            if (!range.block)
+                self.joinLines(range);
         });
     },
 
@@ -177,9 +178,15 @@ $.extend(HTG.File.prototype, {
      * @return {string} - string with multiple lines joined with \ns
      */
     getString: function (range) {
-        var startSlice, intermediateRows, endSlice, string;
+        var self = this,
+            startSlice, intermediateRows, endSlice, string;
 
-        if (range.endRow - range.startRow > 1) {
+        if (range.block) {
+            string = _.map(_.range(range.startRow, range.endRow + 1), function (idx) {
+                return self.lines[idx].slice(range.startCol, range.endCol + 1);
+            }).join('\n');
+        }
+        else if (range.endRow - range.startRow > 1) {
             startSlice       = this.lines[range.startRow].slice(range.startCol);
             intermediateRows = this.lines.slice(range.startRow + 1, range.endRow).join('\n');
             endSlice         = this.lines[range.endRow].slice(0, range.endCol + 1);

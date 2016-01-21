@@ -1,5 +1,13 @@
 HTG = window.HTG || {};
 
+/**
+ * creates the range class
+ * @class
+ * @param {object} startPoint - an object representing the starting point of the range
+ * @param {object} endPoint   - an object representing the ending point of the range
+ * @param {bool}   block      - the block flag
+ * @param {bool}   inverse    - the inverse flag
+ */
 HTG.Range = function (startPoint, endPoint, block, inverse) {
     this.block   = block;
     this.inverse = inverse;
@@ -7,6 +15,11 @@ HTG.Range = function (startPoint, endPoint, block, inverse) {
 };
 
 $.extend(HTG.Range.prototype, {
+    /**
+     * tells you whether a range contains a given point
+     * @param {object} point - an object representing a point
+     * @return {bool}
+     */
     contains: function (point) {
         if (!this.linesContain(point))
             return false;
@@ -23,6 +36,10 @@ $.extend(HTG.Range.prototype, {
         return true;
     },
 
+    /**
+     * gets ranges by line - not respecting contiguous ranges over multiple lines
+     * @return {object} an object containing arrays of ranges
+     */
     getLines: function () {
         var self  = this,
             lines = {},
@@ -52,10 +69,19 @@ $.extend(HTG.Range.prototype, {
         return lines;
     },
 
+    /**
+     * tells you whether a given point is on any line touched by the range
+     * @param {object} point - an object representing a location on the $code element
+     */
     linesContain: function(point) {
         return (point.row >= this.startRow && point.row <= this.endRow);
     },
 
+    /**
+     * updates the range based on given start and end points
+     * @param {object} startPoint - an object representing the starting point of the range
+     * @param {object} endPoint   - an object representing the ending point of the range
+     */
     update: function (startPoint, endPoint) {
         var self     = this,
             startCol = startPoint.col,

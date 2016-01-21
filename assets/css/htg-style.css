@@ -1,57 +1,58 @@
-.htg-load-file {
-    visibility: hidden;
-    height: 0px;
+@-webkit-keyframes cursor {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 0;   }
+    100% { opacity: 0.5; }
+}
+
+@keyframes cursor {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 0;   }
+    100% { opacity: 0.5; }
+}
+
+.htg-alpha-key {
+    background-color: #1A0E41;
 }
 
 .htg-code {
-    padding-top: 45px !important;
-    padding-bottom: 45px !important;
-}
-
-.htg-flash {
-    background-color: #002a00 !important;
-    -webkit-transition: background-color .15s linear;
-    transition: background-color .15s linear;
-}
-
-.htg-top-bar {
-    background-color: rgba(0, 0, 0, 0.7);
-    color: green;
-    font-size: 20px;
-    padding: 5px 5px 5px 15px;
-    position: absolute;
-    top: 0px;
-    width: 100%;
-    z-index: 101;
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
 }
 
 .htg-controls {
-    bottom: 7px;
-    position: fixed;
-    z-index: 101;
+    background-color : rgba(0,0,0,0.85);
+    bottom           : 0px;
+    padding-top      : 10px;
+    padding-bottom   : 10px;
+    position         : fixed;
+    width            : 100%;
+    z-index          : 101;
 }
 
-.htg-pre {
-    background-color: #000;
-    border: 1px solid black;
-    font-size: 18px;
-    height: 100%;
-    overflow: auto;
-    padding: 0px;
-    position: relative;
+.htg-controls .htg-keyboard:last-child, .htg-controls > .htg-keyboard {
+    margin-bottom: 0px !important;
+}
+
+.htg-cursor {
+    background-color: #FFEB3B;
+    line-height: normal;
+    position: absolute;
+    z-index: 104;
+
+    -webkit-animation: cursor 1s infinite; /* Safari 4+ */
+    -moz-animation:    cursor 1s infinite; /* Fx 5+ */
+    -o-animation:      cursor 1s infinite; /* Opera 12+ */
+    animation:         cursor 1s infinite; /* IE 10+, Fx 29+ */
 }
 
 .htg-editor-row {
     width: 100%;
 }
 
-.htg-noselect {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+.htg-flash {
+    background-color: #002a00 !important;
+    -webkit-transition: background-color .15s linear;
+    transition: background-color .15s linear;
 }
 
 .htg-key {
@@ -80,7 +81,21 @@
     padding-left: 0px !important;
     padding-right: 0px !important;
     padding-bottom: 0px !important;
-    padding-top: 45px !important;
+    padding-top: 40px !important;
+}
+
+.htg-load-file {
+    visibility: hidden;
+    height: 0px;
+}
+
+.htg-noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .htg-overlay {
@@ -89,6 +104,20 @@
     top: 0;
     width: 100%;
     z-index: 100;
+}
+
+.htg-pre {
+    background-color: #000;
+    border: 1px solid black;
+    font-size: 18px;
+    height: 100%;
+    overflow: auto;
+    padding: 0px;
+    position: relative;
+}
+
+.htg-selection {
+    background-color: #333;
 }
 
 .htg-suggestion {
@@ -106,8 +135,19 @@
     position: relative;
 }
 
-.htg-selection {
-    background-color: #333;
+.htg-top-bar {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: green;
+    font-size: 20px;
+    padding: 5px 5px 0px 15px;
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    z-index: 101;
+}
+
+.htg-top-bar .htg-keyboard {
+    margin-bottom: 0px !important;
 }
 
 .htg-top-controls {

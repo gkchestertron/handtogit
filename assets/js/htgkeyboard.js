@@ -1,48 +1,111 @@
 HTG = window.HTG || {};
 
-HTG.Keyboard = function (context, $element, keyHandlers) {
+/**
+ * creates the keyboard class
+ * @class
+ * @param {object} context  - the context for the handlers
+ * @param {object} $element - the element to attach the keyboard to
+ * @param (object} options  - the keys and handlers for building the keyboard
+ */
+HTG.Keyboard = function (context, $element, options) {
     this.context  = context;
     this.$element = $element;
-
     this.$element.addClass('htg-keyboard');
     this.$element.addClass('htg-noselect');
-    this.buildKeys(keyHandlers);
+    this.buildKeys(options.keys, options.handlers);
 };
 
 $.extend(HTG.Keyboard.prototype, {
-    buildKeys: function (keyHandlers) {
+    /**
+     * builds the keyboard from the keys and handlers
+     * @param {array}  keyRows  - an array of arrays of strings representing keys
+     * @param {object} handlers - a mapping of keys to callback names (with an optional default)
+     */
+    buildKeys: function (keyRows, handlers) {
         var self = this,
-            idx  = 0;
+            keyIdx  = 0;
 
-        _.each(keyHandlers, function (keys, handler) {
-            if (typeof(keys) === 'string') {
-                keys = [keys];
-            }
+        this.$element.html('');
 
-            _.each(keys, function (key) {
-                var listener = 'click span[data-key-idx="'+idx+'"]';
-                    $key     = $('<span class="htg-key" data-handler="'+handler+'" data-key-idx="'+idx+'">'+key+'</span>');
+        _.each(keyRows, function (row, rowIdx) {
+            var row$el = $('<div class="htg-keyboard" data-keyboard-row-idx="'+rowIdx+'"></div>');
 
-                self.$element.append($key);
-                self.setHandler(listener, self.context[handler].bind(self.context));
-                idx++;
+            self.$element.append(row$el);
+
+            _.each(row, function (key) {
+                var selector = 'span[data-key-idx="'+keyIdx+'"]',
+                    handler  = handlers[key] || handlers.default,
+                    $key     = key === null ? $('<span> </span>') : $('<span class="htg-key" data-handler="'+
+                                 handler+'" data-key-idx="'+keyIdx+'">'+key+
+                               '</span>');
+
+                if (/^\w$/.test(key))
+                    $key.addClass('htg-alpha-key');
+
+                row$el.append($key);
+                self.setHandler(selector, key, handler);
+                keyIdx++;
             });
+        });
+
+        // adds the touchend event to the main element instead of individual keys 
+        // so that the direction can be determined
+        this.$element.on('touchend', function (event) {
+            var endX = HTG.getPageX(event),
+                endY = HTG.getPageY(event),
+                x    = endX - self.startX,
+                y    = endY - self.startY,
+                dir  = self.getDirection(x, y);
+
+            self.context[self.currentHandler].call(self.context, self.currentKey, dir);
         });
     },
 
-    setHandler: function (listener, handler) {
-        var split    = listener.split(' '),
-            event    = split[0],
-            elements = split.slice(1).join('');
+    /**
+     * gets the direction of an action based on x and y diffs
+     * @param  {int} x  - the horizontal diff
+     * @param  {int} y  - the horizontal diff
+     * @return {string} - a string representing the action direction
+     */
+    getDirection: function (x, y) {
+        var dirs = {
+                right : x,
+                left  : -1 * x,
+                down  : y,
+                up    : -1 * y
+            },
+            current,
+            max,
+            maxDir;
 
-        this.$element.on(event, elements, handler.bind(this.context));
+        if (Math.abs(x) < 15 && Math.abs(y) < 15)
+            return 'tap';
+
+        for (var dir in dirs) {
+            current = dirs[dir];
+            if (max === undefined || current > max) {
+                max = current;
+                maxDir = dir;
+            }
+        }
+
+        return maxDir;
     },
 
-    setHandlers: function (handlers) {
+    /**
+     * sets a handler for an individual key
+     * @param {string} selector - the selector to delegate the event listener to
+     * @param {string} key      - a string representing the key and its value
+     * @param {string} handler  - a string representing the handler to call within the keyboard's given context
+     */
+    setHandler: function (selector, key, handler) {
         var self = this;
 
-        _.each(handlers, function (handler, listener) {
-            self.setHandler(listener, handler);
+        this.$element.on('touchstart', selector, function (event) {
+            self.startX = HTG.getPageX(event);
+            self.startY = HTG.getPageY(event);
+            self.currentHandler = handler;
+            self.currentKey     = key;
         });
     }
 });

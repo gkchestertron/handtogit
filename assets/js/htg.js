@@ -1,6 +1,10 @@
 window.HTG = window.HTG || (function () {
     var consts;
 
+    /**
+     * creates the main HTG class
+     * @class
+     */
     var HTG = function ($element) {
         this.buildTemplate($element);
         this.$ = this.$element.find.bind(this.$element);;
@@ -9,8 +13,7 @@ window.HTG = window.HTG || (function () {
             { occurance: 1, suggestion: 'test' },
             { occurance: 2, suggestion: 'suggestions' },
         ],
-        this.setUIListeners();
-        this.setStateListeners();
+        this.setListeners();
         this.loadFromString(
         "// PhantomJS doesn't support bind yet                                        \n" +
         "Function.prototype.bind = Function.prototype.bind || function (thisp) {\n" +
@@ -25,19 +28,23 @@ window.HTG = window.HTG || (function () {
     };
     
     $.extend(HTG.prototype, {
+        /**
+         * builds the template for the htg instance
+         * @param {object} $element - the element to build the instance in
+         */
         buildTemplate: function ($element) {
             // setup objects
-            this.$element     = $element;
-            this.$wrapper     = $('<div class="htg-wrapper"></div>');
-            this.$pre         = $('<pre class="htg-noselect htg-pre"></pre>');
-            this.$topBar      = $('<div class="htg-top-bar"></div>');
-            this.$topControls = $('<div class="htg-top-controls"></div>');
-            this.$numbers     = $('<div class="htg-line-numbers"></div>');
-            this.$code        = $('<code class="htg-code"></code>');
-            this.$overlay     = $('<div class="htg-overlay"></div>');
-            this.$controls    = $('<div class="htg-controls"></div>');
-            this.$keyboard    = $('<div class="htg-keyboard"></div>');
-            this.$mainCont    = $('<div class="htg-main-controls"></div>');
+            this.$element      = $element;
+            this.$wrapper      = $('<div class="htg-wrapper"></div>');
+            this.$pre          = $('<pre class="htg-noselect htg-pre"></pre>');
+            this.$topBar       = $('<div class="htg-top-bar"></div>');
+            this.$topControls  = $('<div class="htg-top-controls"></div>');
+            this.$numbers      = $('<div class="htg-line-numbers"></div>');
+            this.$code         = $('<code class="htg-code"></code>');
+            this.$overlay      = $('<div class="htg-overlay"></div>');
+            this.$controls     = $('<div class="htg-controls"></div>');
+            this.$keyboard     = $('<div class="htg-keyboard"></div>');
+            this.$mainControls = $('<div class="htg-main-controls"></div>');
 
             // append the things
             this.$element.append(this.$wrapper);
@@ -46,13 +53,39 @@ window.HTG = window.HTG || (function () {
             this.$wrapper.append(this.$pre);
             this.$wrapper.append(this.$controls);
             this.$controls.append(this.$keyboard);
-            this.$controls.append(this.$mainCont);
+            this.$controls.append(this.$mainControls);
             this.$controls.append('<input title="Choose File" type="file" class="htg-load-file">');
             this.$pre.append(this.$numbers);
             this.$pre.append(this.$code);
             this.$pre.append(this.$overlay);
+
+            // hide the keyboard
+            this.$keyboard.hide();
         },
 
+        drawCursor: function () {
+            if (this.controller.mode !== 'insert')
+                return;
+
+            var row = this.controller.insertRange.startRow,
+                col = this.controller.insertRange.startCol,
+                top = this.get$row(row).offset().top;
+
+                console.log(this.consts.fontWidth, this.consts.adjustedLeft, this.$pre.scrollLeft());
+            this.$cursor && this.$cursor.remove();
+            this.$cursor = $('<span class="htg-cursor"> </span>');
+                
+            this.$cursor.css({
+                top: top,
+                left: (((col + 1) * this.consts.fontWidth) + this.consts.adjustedLeft)
+            });
+
+            this.$pre.append(this.$cursor);
+        },
+
+        /**
+         * makes the background flash green
+         */
         flash: function () {
             var self = this;
 
@@ -66,6 +99,50 @@ window.HTG = window.HTG || (function () {
             }, 200);
         },
 
+        /**
+         * gets the text column of an event
+         * @param {Event} event
+         * @return {int}
+         */
+        getTextColumn: function (event) {
+            var $child  = $(event.currentTarget),
+                $parent = $child.parent(),
+                eventX  = HTG.getPageX(event),
+                left    = eventX - (HTG.consts.adjustedLeft - $parent.scrollLeft()),
+                col     = Math.floor(left/this.consts.fontWidth) - 1;
+
+            return col;
+        },
+
+        /**
+         * gets the text row of an event
+         * @param {Event} event
+         * @return {int}
+         */
+        getTextRow: function (event) {
+            var eventY       = HTG.getPageY(event),
+                rowHeight    = HTG.consts.rowHeight,
+                rowNumber    = Math.floor((this.$pre.scrollTop() + eventY - this.consts.adjustedTop)/rowHeight);
+
+            return rowNumber;
+        },
+
+        get$row: function (idx) {
+            return this.$('span[data-line-index="'+idx+'"]');
+        },
+
+        /**
+         * hides the keyboard and shows the main controls
+         */
+        hideKeyboard: function () {
+            this.$keyboard.hide();
+            this.$mainControls.show();
+        },
+
+        /**
+         * loads a file into the htg instance - async
+         * @param {Event} event - the file input change event
+         */
         loadFromFile: function (event) {
             var self   = this,
                 reader = new FileReader(),
@@ -79,6 +156,11 @@ window.HTG = window.HTG || (function () {
             reader.readAsText(file);
         },
 
+        /**
+         * loads a string into the htg instance
+         * @param {string} fileString - the string to load
+         * @param {bool}   saveState  - whether to save the new state of the file on reload
+         */
         loadFromString: function (fileString, saveState) {
             var self = this,
                 i    = 0,
@@ -103,6 +185,7 @@ window.HTG = window.HTG || (function () {
             if (saveState !== false)
                 this.file.state.save(fileString);
                 // self.$topBar.html(file.name); // TODO need to show filename somewhere 
+
             this.renumber();
         },
 
@@ -135,6 +218,7 @@ window.HTG = window.HTG || (function () {
                 string = this.file.lines.join('\n');
 
             this.loadFromString(string);
+            this.drawCursor();
         },
 
         removeLines: function (lineNumbers) {
@@ -151,6 +235,9 @@ window.HTG = window.HTG || (function () {
             this.renumber();
         },
 
+        /**
+         * redoes the line numbers and resizes the overlay to match the new length of the file
+         */
         renumber: function () {
             var numberWidth = this.file.lines.length.toString().length;
 
@@ -175,20 +262,13 @@ window.HTG = window.HTG || (function () {
             this.resizeOverlay();
         },
 
-        replaceSelection(text) {
-            var line = this.selection.line,
-                startSlice = line.slice(0, this.selection.start),
-                endSlice = line.slice(this.selection.end),
-                lineText = startSlice + text + endSlice;
-
-            this.file.lines[this.selection.lineIndex] = lineText;
-            this.redrawRow(this.selection.$row);
-        },
-
         removeSuggestions: function () {
             $('.htg-suggestion').remove();
         },
 
+        /**
+         * resizes the overlay to match the length of the file
+         */
         resizeOverlay: function () {
             var $editorRows = this.$('.htg-editor-row');
             
@@ -205,6 +285,9 @@ window.HTG = window.HTG || (function () {
             this.$overlay.height(this.$code.height() + (2 * this.consts.adjustedTop));
         },
 
+        /**
+         * connects the button to the hidden file input
+         */
         selectFile: function () {
             var $file = this.$('.htg-load-file')
 
@@ -212,6 +295,9 @@ window.HTG = window.HTG || (function () {
             $file.one('change', this.loadFromFile.bind(this));
         },
 
+        /**
+         * sets the constants the htg instance will need
+         */
         setConstants: function () {
             var border      = this.$code.css('border-width'),
                 paddingTop  = this.$code.css('padding-top'),
@@ -236,11 +322,16 @@ window.HTG = window.HTG || (function () {
                          (numberWidth * this.consts.fontWidth);
 
             // add in adjustment for border and padding
-            this.consts.adjustedLeft = offset.left + adjustment;
+            this.consts.numberWidth  = numberWidth;
+            this.consts.adjustedLeft = adjustment + 1;
             this.consts.adjustedTop  = offset.top  + HTG.stripPx(border) + HTG.stripPx(paddingTop);
             this.consts.rowHeight = (this.$code.height())/(this.file.lines.length)
         },
 
+        /**
+         * sets the language for the instance
+         * @param {string} language - a string of the language name to fetch from the server
+         */
         setLanguage: function (language) {
             var self   = this,
                 script = document.createElement('script'),
@@ -250,25 +341,44 @@ window.HTG = window.HTG || (function () {
             head.appendChild(script);
 
             script.onload = function () {
-                self.language = new self.Language(HTG.LDEFS[language]);
+                self.language = new HTG.Language(HTG.LDEFS[language]);
                 self.file.buildWordList(self.language);
             };
         },
 
-        setUIListeners: function () {
+        /**
+         * sets the listeners and builds the keyboards
+         */
+        setListeners: function () {
             var self = this;
 
             // main menu controls
-            this.mainControls = new HTG.Keyboard(this, this.$mainCont, {
-                toggleFullScreen: 'fullscreen',
-                selectFile: 'load file...'
+            this.mainControls = new HTG.Keyboard(this, this.$mainControls, {
+                keys: [
+                    ['fullscreen', 'load...', null, '&#x2328;']
+                ],
+
+                handlers: {
+                    'fullscreen'   : 'toggleFullScreen',
+                    'load...' : 'selectFile',
+                    '&#x2328;'    : 'showKeyboard'
+                }
             });
 
-            // main keyboard
-            this.keyboard = new HTG.Keyboard(this, this.$keyboard, {
-                type: [
-                    '()'
-                ]
+            // keyboard
+            this.keyboard = new HTG.Keyboard(this, $(this.$keyboard), {
+                keys: [
+                    ['!', '&', '|', '()', '{}', '[]', "''", '==', '<>'],
+                    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '&#x2190;'],
+                    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'space'],
+                    ['z', 'x', 'c', 'v', 'b', 'n', 'm', ';',  null, '7', '8', '9'],
+                    ['*', '/', '-', '+', '%', ':', ',', '.',  null, '4', '5', '6'],
+                    ['~', '@', '#', '$', '^', '\\', '?', null, '0', '1', '2', '3']
+                ],
+
+                handlers: {
+                    default: 'type'
+                }
             });
 
             // scroll
@@ -277,28 +387,89 @@ window.HTG = window.HTG || (function () {
             });
         },
 
-        setStateListeners: function () {
-            var self = this;
-
-            this.$('.htg-undo').on('click', function () {
-                if (self.state.undo()) {
-                    self.splitPre();
-                }
-            });
-
-            this.$('.htg-redo').on('click', function () {
-                if (self.state.redo()) {
-                    self.splitPre();
-                }
-            });
+        /**
+         * shows the keyboard and hides the main controls
+         */
+        showKeyboard: function () {
+            this.$keyboard.show();
+            this.$mainControls.hide();
         },
 
+        /**
+         * toggles full screen mode
+         */
         toggleFullScreen: function () {
             HTG.toggleFullScreen()
         },
 
-        type: function (event) {
-            console.log($(event.currentTarget).text());
+        /**
+         * generic handler for typing on the keyboard 
+         * - calls the controllers insert and backspace methods
+         * @param {string} chr - the character (or characters) to type
+         * @param {string} dir - the action direction
+         */
+        type: function (chr, dir) {
+            if (chr === 'space')
+                chr = ' ';
+            else
+                chr = this.typeModifiers[dir](chr);
+
+            if (chr === '&#x2190;')
+                this.controller.backspace();
+            else if (chr !== '==' && chr.length === 2 && dir === 'up')
+                this.controller.insert(chr, 1);
+            else
+                this.controller.insert(chr);
+        },
+
+        /**
+         * namespace for modifying typed chars based on action direction
+         * @namespace
+         */
+        typeModifiers: {
+            left: function (chr) {
+                if (chr.length === 2)
+                    return chr[0];
+
+                if (chr === '==')
+                    return '=';
+
+                return chr;
+            },
+
+            right: function (chr) {
+                if (chr.length === 2)
+                    return chr[1];
+
+                if (chr === '==')
+                    return '===';
+
+                return chr + chr;
+            },
+
+            up: function (chr) {
+                if (/\w/.test(chr))
+                    return chr.toUpperCase();
+
+                if (chr === '~')
+                    return '`';
+
+                return chr;
+            },
+
+            down: function (chr) {
+                if (chr === '<>')
+                    return '</>';
+
+                if (chr === '-')
+                    return '_';
+
+                return chr;
+            },
+
+            tap: function (chr) {
+                return chr;
+            }
         }
     });
     
