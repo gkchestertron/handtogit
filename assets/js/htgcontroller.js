@@ -481,10 +481,10 @@ $.extend(HTG.Controller.prototype, {
      */
     //TODO implement diffs
     redo: function () {
-        var string = this.htg.file.state.next();
+        var diff = this.htg.file.state.next();
 
-        if (string)
-            this.htg.loadFromString(string, false);
+        if (diff)
+            console.log(diff);
         else
             this.htg.flash();
     },
@@ -596,10 +596,14 @@ $.extend(HTG.Controller.prototype, {
      */
     //TODO implement diffs
     undo: function () {
-        var string = this.htg.file.state.prev();
+        var diff = this.htg.file.state.prev();
 
-        if (string)
-            this.htg.loadFromString(string, false);
+        if (diff) {
+            this.htg.file.applyDiff(diff, 'old');
+            this.htg.reload(diff, 'old');
+            // this.htg.loadFromString(string, false);
+            // 
+        }
         else
             this.htg.flash();
     },

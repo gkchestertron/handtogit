@@ -29,8 +29,8 @@ window.HTG = window.HTG || (function () {
             text = HTG.htmlConvert(text, 'html');
             $row.next('.htg-break')
                 .after('<span class="htg-editor-row">'+text+'</span><span class="htg-break">\n</span>');
-            hljs.highlightBlock($row[0]);
-            $row.removeClass('hljs');
+            // hljs.highlightBlock($row[0]);
+            // $row.removeClass('hljs');
         },
 
         /**
@@ -169,7 +169,7 @@ window.HTG = window.HTG || (function () {
         },
 
         get$row: function (idx) {
-            return $(this.$('span[data-line-index]')[idx]);
+            return $(this.$('span.htg-editor-row')[idx]);
         },
 
         /**
@@ -200,9 +200,8 @@ window.HTG = window.HTG || (function () {
         /**
          * loads a string into the htg instance
          * @param {string} fileString - the string to load
-         * @param {bool}   saveState  - whether to save the new state of the file on reload
          */
-        loadFromString: function (fileString, saveState) {
+        loadFromString: function (fileString) {
             var self = this,
                 i    = 0,
                 text;
@@ -223,10 +222,7 @@ window.HTG = window.HTG || (function () {
             if (this.language)
                 this.file.buildWordList(this.language);
 
-            // save state
-            if (saveState !== false)
-                this.file.state.save(fileString);
-                // self.$topBar.html(file.name); // TODO need to show filename somewhere 
+            // self.$topBar.html(file.name); // TODO need to show filename somewhere 
 
             this.renumber();
         },
@@ -278,16 +274,31 @@ window.HTG = window.HTG || (function () {
             diff = diff || this.file.commit();
             dir  = dir  || 'new';
 
-            _.each(diff.added, function (line, lineIdx) {
-                self.addRow(lineIdx - 1, line);
-            });
+            if (dir === 'new') {
+                _.each(diff.added, function (line, lineIdx) {
+                    self.addRow(lineIdx - 1, line);
+                });
 
-            _.each(diff.changed, function (line, lineIdx) {
-                self.changeRow(lineIdx, line[dir]);
-            });
+                _.each(diff.changed, function (line, lineIdx) {
+                    self.changeRow(lineIdx, line[dir]);
+                });
 
-            this.deleteRows(diff.deleted);
+                this.deleteRows(diff.deleted);
+            }
+            else {
+                this.deleteRows(diff.added);
 
+                _.each(diff.changed, function (line, lineIdx) {
+                    self.changeRow(lineIdx, line[dir]);
+                });
+
+                _.each(diff.deleted, function (line, lineIdx) {
+                    self.addRow(lineIdx - 1, line);
+                });
+            }
+
+            // hljs.highlightBlock(this.$code[0]);
+            
             this.renumber();
             this.controller.highlightRanges();
             this.drawCursors();
@@ -323,7 +334,7 @@ window.HTG = window.HTG || (function () {
                 return '<span class="line-number htg-noselect" data-line-number-index="'+num+'"> '+lineNumber+'</span> \n';
             }));
 
-            hljs.highlightBlock(this.$numbers[0]);
+            // hljs.highlightBlock(this.$numbers[0]);
 
             this.$('span.htg-editor-row').each(function (idx, row) {
                 $(row).attr('data-line-index', idx);

@@ -23,6 +23,56 @@ $.extend(HTG.File.prototype, {
         this.newLines[idx] = lines.concat(this.newLines[idx]);
     },
 
+    // TODO finish this thing
+    applyDiff: function (diff, dir) {
+        var self = this,
+            added = _.map(diff.added, function (line, lineIdx) {
+                return { idx: parseInt(lineIdx), line: line };
+            }),
+            deleted = _.map(diff.deleted, function (line, lineIdx) {
+                return { idx: parseInt(lineIdx), line: line };
+            });
+
+        if (dir === 'new') {
+            added.sort(function (a, b) { return a.idx - b.idx; });
+            deleted.sort(function (a, b) { return b.idx - a.idx; });
+
+            // add
+            _.each(added, function (add) {
+                self.lines = self.lines.slice(0, add.idx - 1).concat(add.line).concat(self.lines.slice(add.idx - 1));
+            });
+
+            // change
+            _.each(diff.changed, function (line, lineIdx) {
+                self.lines[lineIdx] = line[dir];
+            });
+
+            // delete
+            _.each(deleted, function (del) {
+                self.lines.splice(del.idx);
+            });
+        }
+        else {
+            added.sort(function (a, b) { return b.idx - a.idx; });
+            deleted.sort(function (a, b) { return a.idx - b.idx; });
+
+            // delete
+            _.each(added, function (del) {
+                self.lines.splice(del.idx);
+            });
+
+            // change
+            _.each(diff.changed, function (line, lineIdx) {
+                self.lines[lineIdx] = line[dir];
+            });
+
+            // add
+            _.each(deleted, function (add) {
+                self.lines = self.lines.slice(0, add.idx - 1).concat(add.line).concat(self.lines.slice(add.idx - 1));
+            });
+        }
+    },
+
     /**
      * returns anything wrapped in an array if it isn't one already
      * @param {variable} thing - thing to wrap as an array
@@ -54,7 +104,7 @@ $.extend(HTG.File.prototype, {
      * - converts changed/added lines back to strings (from arrays)
      * @return {object} the diff containing the indices of changed, added and removed lines
      */
-    commit: function () {
+    commit: function (saveState) {
         var lines = [],
             diff  = {
                 added   : {},
@@ -75,7 +125,7 @@ $.extend(HTG.File.prototype, {
                 line = line.join('');
 
             if (isDelete) {
-                diff.deleted[idx] = line;
+                diff.deleted[idx] = old;
             }
             else {
                 if (isNew)
@@ -90,6 +140,9 @@ $.extend(HTG.File.prototype, {
         this.lines      = lines;
         this.newLines   = {};
         this.insertions = {};
+
+        if (saveState !== false)
+            this.state.save(diff);
 
         return diff;
     },
@@ -406,9 +459,8 @@ $.extend(HTG.File.prototype, {
         },
 
         prev: function () {
-            if (this.pointer < 1) return false;
-            this.pointer--;
-            return this.stack[this.pointer];
+            if (this.pointer < 0) return false;
+            return this.stack[this.pointer--];
         },
 
         stack: []
