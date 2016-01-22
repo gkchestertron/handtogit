@@ -68,7 +68,8 @@ $.extend(HTG.File.prototype, {
         _.each(this.lines, function (line, idx) {
             var isNew    = line.isNew,
                 isDelete = line.isDelete,
-                isChange = Array.isArray(line);
+                isChange = Array.isArray(line),
+                old      = line.old;
 
             if (Array.isArray(line))
                 line = line.join('');
@@ -80,7 +81,7 @@ $.extend(HTG.File.prototype, {
                 if (isNew)
                     diff.added[idx] = line;
                 else if (isChange)
-                    diff.changed[idx] = line;
+                    diff.changed[idx] = { old: old, new: line };
 
                 lines.push(line);
             }
@@ -162,8 +163,10 @@ $.extend(HTG.File.prototype, {
 
         _.each(ranges, function (range) {
             for (var i = range.startRow; i <= range.endRow; i++) {
-                if (typeof(self.lines[i]) === 'string')
+                if (typeof(self.lines[i]) === 'string') {
                     self.lines[i] = self.lines[i].split('');
+                    self.lines[i].old = self.lines[i].join('');
+                }
 
                 lines[i] = self.lines[i];
             }
@@ -316,7 +319,7 @@ $.extend(HTG.File.prototype, {
 
                 line.isNew = true;
 
-                newLinesObj[lineIdx] = line;
+                newLinesObj.lines[lineIdx] = line;
             });
 
             self.lines = self.lines.slice(0, idx).concat(newLinesObj.lines).concat(self.lines.slice(idx));

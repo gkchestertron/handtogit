@@ -5,7 +5,7 @@ window.HTG = window.HTG || (function () {
      * creates the main HTG class
      * @class
      */
-    var HTG = function ($element) {
+    var HTG = function ($element, options) {
         this.buildTemplate($element);
         this.$ = this.$element.find.bind(this.$element);;
         this.suggestions = [
@@ -13,6 +13,7 @@ window.HTG = window.HTG || (function () {
             { occurance: 1, suggestion: 'test' },
             { occurance: 2, suggestion: 'suggestions' },
         ],
+        this.setDefaults(options);
         this.setListeners();
         this.loadWelcomeMessage();
         this.setLanguage('javascript');
@@ -22,6 +23,16 @@ window.HTG = window.HTG || (function () {
     };
     
     $.extend(HTG.prototype, {
+        addRow: function (idx, text) {
+            var $row = this.get$row(idx);
+
+            text = HTG.htmlConvert(text, 'html');
+            $row.next('.htg-break')
+                .after('<span class="htg-editor-row">'+text+'</span><span class="htg-break">\n</span>');
+            hljs.highlightBlock($row[0]);
+            $row.removeClass('hljs');
+        },
+
         /**
          * builds the template for the htg instance
          * @param {object} $element - the element to build the instance in
@@ -57,6 +68,30 @@ window.HTG = window.HTG || (function () {
             this.$keyboard.hide();
         },
 
+        changeRow: function (idx, text) {
+            var $row = this.get$row(idx);
+
+            text = HTG.htmlConvert(text, 'html');
+
+            $row.html(text);
+        },
+
+        deleteRows: function (rows) {
+            var self = this,
+                $els = [];
+
+            _.each(rows, function (row, idx) {
+                var $row = self.get$row(idx);
+
+                $els.push($row);
+                $els.push($row.next('.htg-break'));
+            });
+
+            _.each($els, function ($el) {
+                $el.remove();
+            });
+        },
+
         drawCursors: function () {
             var self = this;
 
@@ -70,16 +105,15 @@ window.HTG = window.HTG || (function () {
                     var row     = insertRange.startRow,
                         col     = insertRange.startCol,
                         top     = self.get$row(row).offset().top + self.$pre.scrollTop(),
-                        left    =  (((col + 1) * self.consts.fontWidth) + 
-                                    self.consts.adjustedLeft)
+                        left    = (((col + 1) * self.consts.fontWidth) + self.consts.adjustedLeft),
                         $cursor = $('<span class="htg-cursor"> </span>'); 
 
                     if (col < 0)
                         return self.flash();
                         
                     $cursor.css({
-                        top: top,
-                        left: (((col + 1) * self.consts.fontWidth) + self.consts.adjustedLeft)
+                        top  : top,
+                        left : left
                     });
 
                     self.$cursors.push($cursor);
@@ -135,7 +169,7 @@ window.HTG = window.HTG || (function () {
         },
 
         get$row: function (idx) {
-            return this.$('span[data-line-index="'+idx+'"]');
+            return $(this.$('span[data-line-index]')[idx]);
         },
 
         /**
@@ -182,7 +216,7 @@ window.HTG = window.HTG || (function () {
             }).join('<span class="htg-break">\n</span>');
 
             this.$code.html(text);
-            // while (i++ < 30) this.$code.append('\n');
+            while (i++ < this.consts.linePadding) this.$code.append('\n');
 
             hljs.highlightBlock(this.$code[0]);
             this.setConstants();
@@ -237,11 +271,25 @@ window.HTG = window.HTG || (function () {
             $row.removeClass('hljs');
         },
 
-        reload: function () {
-            var diff   = this.file.commit(), // for later
+        reload: function (diff, dir) {
+            var self   = this,
                 string = this.file.lines.join('\n');
 
-            this.loadFromString(string);
+            diff = diff || this.file.commit();
+            dir  = dir  || 'new';
+
+            _.each(diff.added, function (line, lineIdx) {
+                self.addRow(lineIdx - 1, line);
+            });
+
+            _.each(diff.changed, function (line, lineIdx) {
+                self.changeRow(lineIdx, line[dir]);
+            });
+
+            this.deleteRows(diff.deleted);
+
+            this.renumber();
+            this.controller.highlightRanges();
             this.drawCursors();
         },
 
@@ -355,8 +403,6 @@ window.HTG = window.HTG || (function () {
                 numberWidth = this.file.lines.length.toString().length,
                 adjustment;
 
-            // create namespace
-            HTG.consts = this.consts = consts = {};
 
             // calculate average letter width by averaging appended test letters
             this.$code.append('<span id="htg-test-letters">qwertyuiopasdfghjklzxcvbnm(){}[];</span>'),
@@ -374,7 +420,16 @@ window.HTG = window.HTG || (function () {
             this.consts.numberWidth  = numberWidth;
             this.consts.adjustedLeft = adjustment;
             this.consts.adjustedTop  = HTG.stripPx(border) + HTG.stripPx(paddingTop);
-            this.consts.rowHeight    = (this.$code.height())/(this.file.lines.length);
+            this.consts.rowHeight    = (this.$code.height())/(this.file.lines.length + this.consts.linePadding - 1);
+        },
+
+        setDefaults: function (options) {
+            this.options = options || {};
+
+            HTG.consts = this.consts = consts = {
+                linePadding : this.options.linePadding || 15,
+                tabLength   : this.options.tabLength   || 4
+            };
         },
 
         /**
@@ -459,8 +514,11 @@ window.HTG = window.HTG || (function () {
          */
         type: function (chr, dir) {
             if (chr === 'space') {
-                if (dir === 'right')
-                    chr = '    ';
+                if (dir === 'right') {
+                    chr = _.map(_.range(this.consts.tabLength), function (idx) {
+                        return ' ';
+                    }).join('');
+                }
                 else
                     chr = ' ';
             }

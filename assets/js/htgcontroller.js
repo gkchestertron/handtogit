@@ -275,9 +275,7 @@ $.extend(HTG.Controller.prototype, {
      * clears out the selection, redraws the previously selected rows and removes 
      * reference to the previously selected range
      */
-    clearSelection: function (redraw) {
-        if (redraw !== false)
-            this.redrawSelectedRows();
+    clearSelection: function () {
         this.selection.clear();
         this.currentRange = undefined;
     },
@@ -291,6 +289,7 @@ $.extend(HTG.Controller.prototype, {
         this.htg.removeCursors();
         this.clearSelection();
         this.resetActionFlags();
+        this.highlightRanges();
         this.htg.hideKeyboard();
     },
 
@@ -369,11 +368,11 @@ $.extend(HTG.Controller.prototype, {
                 else if (!this.add && !this.remove && this.startPoint.chr)
                     this.clearSelection();
 
-                // set hold flag in 150ms
+                // set hold flag in 200ms
                 setTimeout(function () {
                     if (!self.moved) 
                         self.actionLevel = 'hold';
-                }, 150);
+                }, 200);
             }
 
             if (this.actionType === 'lineNumber') {
@@ -396,7 +395,7 @@ $.extend(HTG.Controller.prototype, {
             this.endPoint = this.getTouchPoint(event);
 
             // block scrolling
-            if (HTG.getPageY(event) < $(window).height()/2)
+            if (HTG.getPageY(event) < (2 * $(window).height())/3)
                 event.preventDefault();
             else
                 this.scrolling = true
@@ -427,19 +426,26 @@ $.extend(HTG.Controller.prototype, {
     highlightRanges: function () {
         var self = this;
 
-        this.redrawSelectedRows();
+        this.htg.$('.htg-selection').remove();
 
-        _.each(this.selection.getLines(), function (ranges, lineNumber) {
-            var line = self.htg.file.lines[lineNumber],
-                $row = self.htg.$('[data-line-index="'+lineNumber+'"]'),
-                $lineNumber = self.htg.$('[data-line-number-index="'+lineNumber+'"]');
+        _.each(this.selection.getLines(), function (line) {
+            _.each(line, function (range) {
+                var row          = range.startRow,
+                    col          = range.startCol,
+                    top          = self.htg.get$row(row).offset().top + self.htg.$pre.scrollTop(),
+                    left         = (((col + 1) * self.htg.consts.fontWidth) + self.htg.consts.adjustedLeft),
+                    selection    = _.map(_.range(range.length), function () {
+                        return ' ';
+                    }).join(''),
+                    $selection   = $('<span class = "htg-selection">'+selection+'</span>');
 
-            if (ranges.length) {
-                self.selection.$rows.push($row);
-                self.htg.redrawRow($row, HTG.addHighlight(line, ranges));
-                self.selection.$lineNumbers.push($lineNumber);
-                self.htg.redrawRow($lineNumber, HTG.addHighlight($lineNumber.text(), [{}]));
-            }
+                $selection.css({
+                    top  : top,
+                    left : left
+                });
+
+                self.htg.$pre.append($selection);
+            });
         });
     },
 
@@ -481,23 +487,6 @@ $.extend(HTG.Controller.prototype, {
             this.htg.loadFromString(string, false);
         else
             this.htg.flash();
-    },
-
-    /**
-     * redraws all rows in the current selection
-     */
-    redrawSelectedRows: function () {
-        var self  = this;
-        
-        // lines
-        _.each(this.selection.$rows, function ($row) {
-            this.htg.redrawRow($row);
-        });
-
-        // line numbers
-        _.each(this.selection.$lineNumbers, function ($lineNumber) {
-            this.htg.redrawRow($lineNumber, $lineNumber.text());
-        });
     },
 
     /**
