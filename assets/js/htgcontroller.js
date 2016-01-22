@@ -283,6 +283,25 @@ $.extend(HTG.Controller.prototype, {
         this.currentRange = undefined;
     },
 
+    enter: function () {
+        var self   = this,
+            offset = 0;
+
+       _.each(this.insertRanges, function (line) {
+           _.each(line, function (insertRange) {
+               self.htg.file.splitLine(insertRange.startRow, insertRange.startCol);
+               insertRange.startRow += (1 + offset);
+               insertRange.startCol  = 0;
+               insertRange.endCol = insertRange.startCol;
+               insertRange.endRow = insertRange.startRow;
+           });
+
+           offset++;
+       });
+
+       this.htg.reload();
+    },
+
     /**
      * handles escape key in top controls
      */

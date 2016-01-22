@@ -531,6 +531,8 @@ window.HTG = window.HTG || (function () {
                         return ' ';
                     }).join('');
                 }
+                else if (dir === 'down')
+                    return this.controller.enter();
                 else
                     chr = ' ';
             }
