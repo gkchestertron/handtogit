@@ -182,7 +182,10 @@ $.extend(HTG.Controller.prototype, {
          * selects a range
          */
         selectRange: function () {
-            if (!this.htg.file.lines[this.endPoint.row] || this.endPoint.col < 0)
+            var line   = this.htg.file.lines[this.endPoint.row],
+                endCol = this.endPoint.col;
+
+            if (!line || endCol > line.length - 1 || endCol < 0)
                 return;
 
             this.updateCurrentRange();

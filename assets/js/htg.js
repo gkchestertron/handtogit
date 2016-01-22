@@ -268,6 +268,7 @@ window.HTG = window.HTG || (function () {
         },
 
         reload: function (diff, dir) {
+            console.log(diff);
             var self   = this,
                 string = this.file.lines.join('\n');
 

@@ -25,7 +25,6 @@ $.extend(HTG.File.prototype, {
 
     // TODO finish this thing
     applyDiff: function (diff, dir) {
-        console.log(diff);
         var self = this,
             added = _.map(diff.added, function (line, lineIdx) {
                 return { idx: parseInt(lineIdx), line: line };
@@ -69,7 +68,7 @@ $.extend(HTG.File.prototype, {
 
             // add
             _.each(deleted, function (add) {
-                self.lines = self.lines.slice(0, add.idx - 1).concat(add.line).concat(self.lines.slice(add.idx - 1));
+                self.lines = self.lines.slice(0, add.idx).concat(add.line).concat(self.lines.slice(add.idx));
             });
         }
     },
@@ -175,8 +174,9 @@ $.extend(HTG.File.prototype, {
                 if (row === range.endRow || range.block)
                     endCol = range.endCol;
 
-                if (row > range.startRow && row < range.endRow && !range.block)
+                if (row > range.startRow && row < range.endRow && !range.block) {
                     self.deleteLines(row);
+                }
                 else
                     for (var col = startCol; col <= endCol; col++)
                         lines[row][col] = '';
@@ -280,8 +280,10 @@ $.extend(HTG.File.prototype, {
         var insertion = this.insertions[range.startRow] = 
                 this.insertions[range.startRow] || [];
 
-        if (typeof(this.lines[range.startRow]) === 'string')
-            this.lines[range.startRow] = this.lines[range.startRow].split('');
+        if (typeof(this.lines[range.startRow]) === 'string') {
+            this.lines[range.startRow]     = this.lines[range.startRow].split('');
+            this.lines[range.startRow].old = this.lines[range.startRow].join('');
+        }
 
         insertion.push({ range: range, text: text });
     },
@@ -337,13 +339,16 @@ $.extend(HTG.File.prototype, {
                     firstLine      = newLines.shift() || '',
                     lastLine       = newLines.pop()   || '',
                     splitIdx       = insertion.range.startCol,
-                    lineIdx        = insertion.range.startRow;
+                    lineIdx        = insertion.range.startRow,
+                    old            = self.lines[lineIdx].old;
 
                 self.lines[lineIdx] = self.lines[lineIdx]
                     .slice(0, splitIdx)
                     .concat(firstLine)
                     .concat(lastLine)
                     .concat(self.lines[lineIdx].slice(splitIdx));
+
+                    self.lines[lineIdx].old = old;
 
                 if (newLinesLength > 1) {
                     self.splitLine(lineIdx, splitIdx + 1);
@@ -412,7 +417,8 @@ $.extend(HTG.File.prototype, {
 
         // get unique rows
         _.each(_.unique(destRanges, function (range) { return range.startRow }), function (range) {
-            lines[range.startRow] = self.lines[range.startRow].split('');
+            lines[range.startRow]     = self.lines[range.startRow].split('');
+            lines[range.startRow].old = self.lines[range.startRow].join('');
         });
 
         // overwrite each range on each row with string from clipboard
@@ -474,10 +480,15 @@ $.extend(HTG.File.prototype, {
      * @param {int} splitIdx - index at which to split
      */
     splitLine: function (lineIdx, splitIdx) {
-        if (typeof(this.lines[lineIdx]) === 'string')
+        var old = this.lines[lineIdx].old;
+
+        if (typeof(this.lines[lineIdx]) === 'string') {
+            old = this.lines[lineIdx];
             this.lines[lineIdx] = this.lines[lineIdx].split('');
+        }
 
         this.addLines([this.lines[lineIdx].slice(splitIdx)], lineIdx);
         this.lines[lineIdx] = this.lines[lineIdx].slice(0, splitIdx);
+        this.lines[lineIdx].old = old;
     }
 });
