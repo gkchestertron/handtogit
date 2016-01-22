@@ -25,6 +25,7 @@ $.extend(HTG.File.prototype, {
 
     // TODO finish this thing
     applyDiff: function (diff, dir) {
+        console.log(diff);
         var self = this,
             added = _.map(diff.added, function (line, lineIdx) {
                 return { idx: parseInt(lineIdx), line: line };
@@ -199,7 +200,7 @@ $.extend(HTG.File.prototype, {
             if (typeof(self.lines[idx]) === 'string')
                 self.lines[idx] = self.lines[idx].split('');
             self.lines[idx].isDelete = true;
-            self.lines[idx].old = self.lines[idx].join('');
+            self.lines[idx].old = self.lines[idx].old || self.lines[idx].join('');
         });
     },
 
