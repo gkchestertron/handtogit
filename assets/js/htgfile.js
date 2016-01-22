@@ -49,7 +49,7 @@ $.extend(HTG.File.prototype, {
 
             // delete
             _.each(deleted, function (del) {
-                self.lines.splice(del.idx);
+                self.lines.splice(del.idx, 1);
             });
         }
         else {
@@ -58,7 +58,7 @@ $.extend(HTG.File.prototype, {
 
             // delete
             _.each(added, function (del) {
-                self.lines.splice(del.idx);
+                self.lines.splice(del.idx, 1);
             });
 
             // change
@@ -199,6 +199,7 @@ $.extend(HTG.File.prototype, {
             if (typeof(self.lines[idx]) === 'string')
                 self.lines[idx] = self.lines[idx].split('');
             self.lines[idx].isDelete = true;
+            self.lines[idx].old = self.lines[idx].join('');
         });
     },
 

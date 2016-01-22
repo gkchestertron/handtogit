@@ -297,7 +297,7 @@ window.HTG = window.HTG || (function () {
                 });
             }
 
-            // hljs.highlightBlock(this.$code[0]);
+            hljs.highlightBlock(this.$code[0]);
             
             this.renumber();
             this.controller.highlightRanges();
@@ -334,7 +334,7 @@ window.HTG = window.HTG || (function () {
                 return '<span class="line-number htg-noselect" data-line-number-index="'+num+'"> '+lineNumber+'</span> \n';
             }));
 
-            // hljs.highlightBlock(this.$numbers[0]);
+            hljs.highlightBlock(this.$numbers[0]);
 
             this.$('span.htg-editor-row').each(function (idx, row) {
                 $(row).attr('data-line-index', idx);

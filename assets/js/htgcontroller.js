@@ -483,8 +483,10 @@ $.extend(HTG.Controller.prototype, {
     redo: function () {
         var diff = this.htg.file.state.next();
 
-        if (diff)
-            console.log(diff);
+        if (diff) {
+            this.htg.file.applyDiff(diff, 'new');
+            this.htg.reload(diff, 'new');
+        }
         else
             this.htg.flash();
     },
@@ -601,8 +603,6 @@ $.extend(HTG.Controller.prototype, {
         if (diff) {
             this.htg.file.applyDiff(diff, 'old');
             this.htg.reload(diff, 'old');
-            // this.htg.loadFromString(string, false);
-            // 
         }
         else
             this.htg.flash();
